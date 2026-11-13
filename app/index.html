@@ -397,6 +397,22 @@ details.panel>summary::before{content:"▸";color:var(--muted);transition:transf
 details.panel[open]>summary::before{transform:rotate(90deg)}
 details.panel>summary::-webkit-details-marker{display:none}
 .foot{display:none}
+.jump a{position:relative;user-select:none}
+.dockctl{flex:none;display:flex;gap:6px;margin-left:auto;padding-left:8px}
+.dockctl button{border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;background:var(--ice2);border-color:var(--line);white-space:nowrap}
+.dockctl button.on{background:var(--strong);color:var(--onstrong);border-color:var(--strong)}
+.jump.editing{outline:1px dashed var(--strong);outline-offset:-1px}
+.jump.editing a{cursor:grab;color:var(--ink);display:inline-flex;align-items:center;gap:6px;padding-left:6px;padding-right:6px}
+.jump.editing a:active{cursor:grabbing}
+.jump a .mv{display:none;width:20px;height:20px;border-radius:50%;place-items:center;font-size:9px;color:var(--muted);background:var(--ice2);border:1px solid var(--line)}
+.jump.editing a .mv{display:inline-grid}
+.jump a .mv:hover{color:var(--ink);border-color:var(--muted)}
+.jump a.dragging{opacity:.35}
+.jump a.drop-l{box-shadow:-4px 0 0 -1px var(--strong)}
+.jump a.drop-r{box-shadow:4px 0 0 -1px var(--strong)}
+.moved{animation:moved 1s ease-out}
+@keyframes moved{0%{box-shadow:0 0 0 3px var(--strong)}100%{box-shadow:0 0 0 3px transparent}}
+@media (prefers-reduced-motion:reduce){.moved{animation:none}}
 .appver{display:inline-flex;align-items:center;gap:8px}
 .verpill{font-family:var(--mono);font-size:11px;color:var(--muted);padding:5px 9px;border-radius:999px;border:1px solid var(--line);background:var(--ice2)}
 .updbtn{border-radius:999px;padding:6px 12px;font-size:12px;background:var(--ice2);border-color:var(--line)}
@@ -413,7 +429,8 @@ details.panel>summary::-webkit-details-marker{display:none}
   </header>
 
   <nav class="jump" aria-label="Secciones de la app">
-    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#stdPanel">Señal estándar</a><a href="#catPanel">Escenas MIDI</a>
+    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
+    <span class="dockctl"><button id="dockReset" hidden>Restablecer</button><button id="dockEdit" title="Cambiar el orden de las secciones de la página">⇅ Ordenar</button></span>
   </nav>
 
   <section class="deck" id="player" aria-label="Reproductor">
@@ -651,7 +668,7 @@ details.panel>summary::-webkit-details-marker{display:none}
     <p class="hint" style="margin-top:12px">Cada venue crea en su programa (Pro DMX, Sunlite, QLC+…) una escena por sección con sus propios equipos y le asigna la nota de aquí. Con <b>Mantener</b> la escena del venue debe ser tipo flash (en Pro DMX: Auto release); así se apaga sola al cambiar de sección y nunca se desfasa. Las partes de las canciones especiales también mandan la señal de la sección estándar que elijas para cada parte.</p>
   </section>
 
-  <div class="more">
+  <div class="more" id="tecnico">
     <span class="lbl">Técnico</span>
   <details class="panel" id="catPanel">
     <summary>Escenas de Pro DMX (notas MIDI)</summary>
@@ -1934,6 +1951,47 @@ let theme='dark'; try{theme=localStorage.getItem('cabinaTema2')||'dark';}catch(e
 function applyTheme(){ if(theme==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',theme); $('themeBtn').textContent=TLABEL[theme]; }
 $('themeBtn').onclick=()=>{ theme=THEMES[(THEMES.indexOf(theme)+1)%3]; try{localStorage.setItem('cabinaTema2',theme);}catch(e){} applyTheme(); };
 applyTheme();
+// ---------- dock: ordenar las secciones de la página ----------
+(function(){
+  const DOCK_KEY='dmxOrdenSecciones';
+  const dock=document.querySelector('.jump'), wrap=document.querySelector('.wrap'), foot=document.querySelector('.foot'), ctl=dock.querySelector('.dockctl');
+  const links=[...dock.querySelectorAll('a')];
+  const blockOf=a=>document.getElementById(a.getAttribute('href').slice(1));
+  links.forEach(a=>{ a.dataset.b=a.getAttribute('href').slice(1);
+    const l=document.createElement('span'); l.className='mv'; l.textContent='◀'; l.title='Mover arriba';
+    const r=document.createElement('span'); r.className='mv'; r.textContent='▶'; r.title='Mover abajo';
+    a.prepend(l); a.append(r);
+    l.onclick=e=>{ e.preventDefault(); e.stopPropagation(); move(a.dataset.b,-1); };
+    r.onclick=e=>{ e.preventDefault(); e.stopPropagation(); move(a.dataset.b,1); }; });
+  const DEFAULT=links.map(a=>a.dataset.b);
+  const current=()=>[...dock.querySelectorAll('a')].map(a=>a.dataset.b);
+  function apply(order,flash){
+    order.forEach(id=>{ const a=links.find(x=>x.dataset.b===id), b=document.getElementById(id); if(!a||!b) return; dock.insertBefore(a,ctl); wrap.insertBefore(b,foot); });
+    if(flash){ const b=document.getElementById(flash); if(b){ b.classList.remove('moved'); void b.offsetWidth; b.classList.add('moved'); } }
+  }
+  function save(order){ try{ localStorage.setItem(DOCK_KEY,JSON.stringify(order)); }catch(e){} }
+  function move(id,d){ const o=current(), i=o.indexOf(id), j=i+d; if(i<0||j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; apply(o,id); save(o); }
+  // orden guardado (las secciones nuevas que no conozca van al final)
+  try{ const o=JSON.parse(localStorage.getItem(DOCK_KEY)||'null'); if(Array.isArray(o)) apply(o.filter(id=>DEFAULT.includes(id)).concat(DEFAULT.filter(id=>!o.includes(id)))); }catch(e){}
+  // modo ordenar
+  let editing=false, drag=null;
+  const eb=$('dockEdit'), rb=$('dockReset');
+  function setEditing(on){ editing=on; dock.classList.toggle('editing',on); eb.classList.toggle('on',on); eb.textContent=on?'✓ Listo':'⇅ Ordenar'; rb.hidden=!on; links.forEach(a=>a.draggable=on); }
+  eb.onclick=()=>setEditing(!editing);
+  rb.onclick=()=>{ apply(DEFAULT); try{ localStorage.removeItem(DOCK_KEY); }catch(e){} };
+  links.forEach(a=>{
+    a.addEventListener('click',e=>{ if(editing) e.preventDefault(); });
+    a.addEventListener('dragstart',e=>{ if(!editing) return e.preventDefault(); drag=a; a.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',a.dataset.b); }catch(_){} });
+    a.addEventListener('dragend',()=>{ drag=null; links.forEach(x=>x.classList.remove('dragging','drop-l','drop-r')); });
+    a.addEventListener('dragover',e=>{ if(!drag||drag===a) return; e.preventDefault(); const r=a.getBoundingClientRect(), left=e.clientX<r.left+r.width/2;
+      links.forEach(x=>x.classList.remove('drop-l','drop-r')); a.classList.add(left?'drop-l':'drop-r'); });
+    a.addEventListener('dragleave',()=>a.classList.remove('drop-l','drop-r'));
+    a.addEventListener('drop',e=>{ e.preventDefault(); if(!drag||drag===a) return;
+      const left=a.classList.contains('drop-l'), o=current().filter(id=>id!==drag.dataset.b), i=o.indexOf(a.dataset.b);
+      o.splice(left?i:i+1,0,drag.dataset.b); const id=drag.dataset.b; apply(o,id); save(o); });
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&editing) setEditing(false); });
+})();
 // ---------- versión y actualizaciones (solo en la app de escritorio) ----------
 if(window.dmxApp){
   const vb=$('updBtn'); $('appVer').hidden=false;
