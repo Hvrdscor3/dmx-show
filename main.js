@@ -1,9 +1,9 @@
 // DMX Show — app de escritorio (Electron)
 // - Sirve la app en http://localhost:8095 (así localStorage y el "modo puente" de ShowKontrol funcionan solos)
-// - Puente /sk/<ip:puerto>/... → ShowKontrol (reemplaza a "Abrir DMX Show.bat")
+// - Puente /sk/<ip:puerto>/... → ShowKontrol
 // - Permite Web MIDI sin preguntar
 // - Se actualiza sola desde GitHub Releases
-const { app, BrowserWindow, session, dialog, powerSaveBlocker, shell } = require('electron');
+const { app, BrowserWindow, session, dialog, powerSaveBlocker, shell, ipcMain } = require('electron');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -72,7 +72,7 @@ function createWindow() {
     backgroundColor: '#06080e',
     autoHideMenuBar: true,
     title: 'DMX Show ' + app.getVersion(),
-    webPreferences: { backgroundThrottling: false, contextIsolation: true, nodeIntegration: false }
+    webPreferences: { backgroundThrottling: false, contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, 'preload.js') }
   });
   win.maximize();
   win.on('page-title-updated', e => { e.preventDefault(); });
@@ -82,11 +82,32 @@ function createWindow() {
 }
 
 // ---------- actualización automática ----------
+// estado que ve la página: {state:'checking'|'latest'|'available'|'downloading'|'ready'|'error'|'dev', version, percent}
+let upd = { state: 'idle' };
+function sendUpd(s) { upd = s; if (win && !win.isDestroyed()) win.webContents.send('update:status', s); }
+
+ipcMain.handle('app:version', () => app.getVersion());
+ipcMain.handle('update:install', () => { if (upd.state === 'ready') autoUpdater.quitAndInstall(); });
+ipcMain.handle('update:check', async () => {
+  if (!app.isPackaged) { sendUpd({ state: 'dev' }); return upd; }
+  if (upd.state === 'ready' || upd.state === 'downloading') { sendUpd(upd); return upd; }
+  try { await autoUpdater.checkForUpdates(); } catch (e) { sendUpd({ state: 'error' }); }
+  return upd;
+});
+
+let askedFor = null;
 function setupUpdates() {
   if (!app.isPackaged) return; // en desarrollo (npm start) no busca
   autoUpdater.autoDownload = true;          // descarga en segundo plano
   autoUpdater.autoInstallOnAppQuit = true;  // si no reinicias, se instala al cerrar la app
+  autoUpdater.on('checking-for-update', () => { if (upd.state !== 'ready' && upd.state !== 'downloading') sendUpd({ state: 'checking' }); });
+  autoUpdater.on('update-not-available', () => sendUpd({ state: 'latest' }));
+  autoUpdater.on('update-available', info => sendUpd({ state: 'downloading', version: info.version, percent: 0 }));
+  autoUpdater.on('download-progress', p => sendUpd({ state: 'downloading', version: upd.version, percent: Math.round(p.percent || 0) }));
   autoUpdater.on('update-downloaded', async info => {
+    sendUpd({ state: 'ready', version: info.version });
+    if (askedFor === info.version) return; // solo pregunta una vez por versión
+    askedFor = info.version;
     // nunca reinicia sola: puede haber un show en curso
     const r = await dialog.showMessageBox(win, {
       type: 'info',
@@ -98,7 +119,7 @@ function setupUpdates() {
     });
     if (r.response === 0) autoUpdater.quitAndInstall();
   });
-  autoUpdater.on('error', () => {}); // sin internet: sigue funcionando normal
+  autoUpdater.on('error', () => { if (upd.state !== 'ready') sendUpd({ state: 'error' }); }); // sin internet: sigue funcionando normal
   autoUpdater.checkForUpdates().catch(() => {});
   setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000);
 }
