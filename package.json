@@ -33,7 +33,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "DMX Show"
+      "shortcutName": "DMX Show",
+      "artifactName": "DMX-Show-Setup-${version}.${ext}"
     },
     "publish": [
       {
