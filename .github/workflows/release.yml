@@ -1,0 +1,24 @@
+# Publica una versión nueva: pestaña Actions → "Publicar versión" → Run workflow.
+# Usa el número de "version" de package.json. Las PCs con DMX Show se actualizan solas.
+name: Publicar versión
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

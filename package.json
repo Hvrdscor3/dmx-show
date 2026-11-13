@@ -1,0 +1,47 @@
+{
+  "name": "dmx-show",
+  "productName": "DMX Show",
+  "version": "1.0.0",
+  "description": "Luces que corren con la música",
+  "author": "Xidian Music",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never",
+    "release": "electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
+  },
+  "devDependencies": {
+    "electron": "^45.3.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.xidianmusic.dmxshow",
+    "productName": "DMX Show",
+    "files": [
+      "main.js",
+      "app/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DMX Show"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Hvrdscor3",
+        "repo": "dmx-show",
+        "releaseType": "release"
+      }
+    ]
+  }
+}
