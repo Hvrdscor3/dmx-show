@@ -499,13 +499,67 @@ details.panel>summary::-webkit-details-marker{display:none}
 .li .x:hover{border-color:var(--line);color:var(--hot)}
 .addli{display:flex;gap:8px;margin-top:8px}
 .addli input{flex:1;min-width:0}
+
+/* ================= MI SUITE (asistente) ================= */
+.suitebtn{border-radius:999px;padding:6px 12px;font-size:12px;background:var(--ice2);border-color:var(--line)}
+.suitebtn b{font-weight:600}
+.hello h2{font-size:40px;letter-spacing:-.025em;margin:4px 0 6px}
+.hello h2 em{font-size:44px}
+.hello p{margin:0;color:var(--muted);max-width:60ch;line-height:1.55}
+.suites{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.suite{position:relative;text-align:left;display:flex;flex-direction:column;gap:6px;padding:16px 16px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line);min-height:128px}
+.suite:hover{border-color:var(--muted)}
+.suite strong{font-size:18px;letter-spacing:-.01em}
+.suite span{font-size:12.5px;color:var(--muted);line-height:1.45}
+.suite .vias{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+.suite .via{font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--ice2);border:1px solid var(--line);color:var(--ink)}
+.suite .via.soon{color:var(--muted);border-style:dashed;font-weight:500}
+.suite.sel{border-color:var(--strong);box-shadow:0 0 0 1px var(--strong)}
+.suite.cur::after{content:"En uso";position:absolute;top:12px;right:12px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--strong);color:var(--onstrong)}
+.wz{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.wz{grid-template-columns:minmax(0,1fr)}}
+.steps{display:flex;flex-direction:column;gap:6px;position:sticky;top:calc(var(--railh,0px) + 12px)}
+.stp{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:center;text-align:left;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
+.stp i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-family:var(--mono);font-size:12px;background:var(--ice2);border:1px solid var(--line);color:var(--muted)}
+.stp b{font-size:13px;font-weight:600}
+.stp small{display:block;font-size:11.5px;color:var(--muted)}
+.stp.on{border-color:var(--strong)} .stp.on i{background:var(--strong);color:var(--onstrong);border-color:var(--strong)}
+.stp.done i{color:var(--go);border-color:var(--go)}
+.wzbody{display:flex;flex-direction:column;gap:14px}
+.wzbody h3.ptitle{font-size:20px;letter-spacing:-.01em}
+.vpick{display:flex;gap:8px;flex-wrap:wrap}
+.vpick button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;min-width:200px;text-align:left}
+.vpick button small{color:var(--muted);font-size:12px;font-weight:400}
+.vpick button.sel{border-color:var(--strong);box-shadow:0 0 0 1px var(--strong)}
+.howto2{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;counter-reset:h}
+.howto2 li{counter-increment:h;display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:13.5px;line-height:1.55}
+.howto2 li::before{content:counter(h);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;background:var(--ice2);border:1px solid var(--line);margin-top:1px}
+.howto2 code{font-family:var(--mono);font-size:12px;background:var(--ice2);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.conn{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.conn .msg{flex-basis:100%;font-size:13px}
+.maprows{display:flex;flex-direction:column;gap:8px}
+.maprow{--led:var(--led-intro);display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--ice2);border:1px solid var(--line);border-left:4px solid var(--led)}
+.maprow[data-s=build]{--led:var(--led-build)} .maprow[data-s=drop]{--led:var(--led-drop)} .maprow[data-s=break]{--led:var(--led-break)}
+.maprow b{font-size:15px}
+.maprow select,.maprow input{width:100%}
+.maprow .nt{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.testpads{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.testpads{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.testpads .sec{min-height:96px;cursor:pointer}
+.wzfoot{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;align-items:center}
+.wzfoot .go{background:var(--strong);color:var(--onstrong);border-color:var(--strong);font-weight:600;padding:10px 18px}
+.ask{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 16px;border-radius:14px;background:var(--ice2);border:1px solid var(--line)}
+.ask b{flex:1;min-width:200px;font-size:15px}
+.fix{margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:var(--ink)}
+.okbox{padding:16px 18px;border-radius:14px;border:1px solid var(--go);background:color-mix(in srgb,var(--go) 10%,var(--card))}
+.okbox b{font-size:16px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>DMX <em>Show</em><sup>♪</sup></h1>
-    <div class="row" style="align-items:center"><div class="status" id="status">MIDI: <b>iniciando…</b></div><span class="appver" id="appVer" hidden><span class="verpill" id="verPill">v—</span><button id="updBtn" class="updbtn">Buscar actualización</button></span><button id="themeBtn" class="themebtn">◐ Tema: automático</button></div>
+    <div class="row" style="align-items:center"><div class="status" id="status">MIDI: <b>iniciando…</b></div><button id="suiteBtn" class="suitebtn">Elegir mi suite</button><span class="appver" id="appVer" hidden><span class="verpill" id="verPill">v—</span><button id="updBtn" class="updbtn">Buscar actualización</button></span><button id="themeBtn" class="themebtn">◐ Tema: automático</button></div>
   </header>
 
   <nav class="night" id="night" aria-label="Fases de la noche"></nav>
@@ -790,6 +844,7 @@ details.panel>summary::-webkit-details-marker{display:none}
 
   <p class="foot">Luces que corren con la música</p>
   </main>
+  <section class="screen" id="scr-setup" data-screen="setup" hidden></section>
   <section class="screen" id="scr-check" data-screen="check" hidden></section>
   <section class="screen" id="scr-warm" data-screen="warm" hidden></section>
   <section class="screen" id="scr-open" data-screen="open" hidden></section>
@@ -975,7 +1030,7 @@ function guessStd(name){ const n=(name||'').toLowerCase();
   if(/break|puente|bridge|outro|baj|calma|cierre/.test(n)) return 'break';
   if(/intro|entrada|verso|verse|inicio/.test(n)) return 'intro';
   return 'build'; }
-const venueOnly=()=>S.std.on&&S.std.send==='std';
+const venueOnly=()=>(S.suite&&S.suite.id!=='prodmx')||(S.std.on&&S.std.send==='std');
 
 const PART_LEDS=['#3f9bff','#a97dff','#2ef08a','#22d3e6','#ff8a1f','#ff4d8d','#ffe14d','#f4f4f5'];
 const emptyHits=()=>[0,1,2,3].map(()=>Array(16).fill(false));
@@ -1099,7 +1154,7 @@ function sendStd(k,t){
 }
 function stdOff(t){ if(curStd&&S.std.mode==='hold') off(stdNote(curStd),t); curStd=null; queueStdUi(); }
 function applySection(t,keepColor){
-  if(!keepColor) sendStd(live,t);
+  if(!keepColor){ sendStd(live,t); suiteSection(live,t); }
   const sec=obj(live)||{fixed:[],colors:[]};
   if(!keepColor){ colorIdx=0; }
   curColor=sec.colors.length?sec.colors[colorIdx%sec.colors.length]:null;
@@ -1117,7 +1172,7 @@ function rotateColor(t){
 }
 function allOff(t){ [...lit].forEach(n=>setScene(n,false,t)); curColor=null; queueUi(); }
 function panic(){
-  allOff(performance.now()); stdOff(performance.now());
+  allOff(performance.now()); stdOff(performance.now()); suiteOff();
   for(let ch=0;ch<2;ch++){ send([0xB0|ch,123,0]); }
   send([0xB0|(S.std.ch-1),123,0]);
   Object.keys(S.std.notes).forEach(k=>off(stdNote(k)));
@@ -1198,7 +1253,7 @@ function start(at){
   tick(); $('play').classList.add('on'); $('play').textContent='❚❚';
 }
 function stop(){
-  playing=false; if(clockWorker) clockWorker.postMessage('stop'); clearInterval(timer); timer=null; allOff(performance.now()); stdOff(performance.now());
+  playing=false; if(clockWorker) clockWorker.postMessage('stop'); clearInterval(timer); timer=null; allOff(performance.now()); stdOff(performance.now()); suiteOff();
   $('play').classList.remove('on'); $('play').textContent='▶'; paint(-1,[],bar,live);
 }
 // clock externo: 24 pulsos por negra → 6 por paso
@@ -1207,7 +1262,7 @@ function onIn(ev){
   if(!ext)return;
   const d=ev.data[0], now=performance.now();
   if(d===0xFA){ ticks=0; step=0; bar=0; barsInSec=0; playing=true; }
-  else if(d===0xFC){ playing=false; allOff(now); stdOff(now); paint(-1,[],bar,live); }
+  else if(d===0xFC){ playing=false; allOff(now); stdOff(now); suiteOff(); paint(-1,[],bar,live); }
   else if(d===0xFB){ playing=true; }
   else if(d===0xF8){
     tickTimes.push(now); if(tickTimes.length>48)tickTimes.shift();
@@ -2112,7 +2167,8 @@ const PHASES=[
 const PH=id=>PHASES.find(p=>p.id===id);
 const SCR_KEY='dmxPantalla';
 let screen='main'; try{ screen=localStorage.getItem(SCR_KEY)||'main'; }catch(e){}
-if(!PH(screen)) screen='main';
+if(!PH(screen)&&screen!=='setup') screen='main';
+if(!S.suite) screen='setup';
 
 // riel
 const night=$('night');
@@ -2159,11 +2215,11 @@ function paintMini(){
 setInterval(paintMini,250);
 
 function showScreen(id,anchor){
-  if(!PH(id)) id='main';
+  if(!PH(id)&&id!=='setup') id='main';
   const changed=id!==screen; screen=id; try{ localStorage.setItem(SCR_KEY,id); }catch(e){}
   document.querySelectorAll('.screen').forEach(x=>x.hidden=x.dataset.screen!==id);
   PHASES.forEach(p=>$('ph_'+p.id).classList.toggle('cur',p.id===id));
-  $('ph_'+id).scrollIntoView({block:'nearest',inline:'nearest'});
+  const pb=$('ph_'+id); if(pb) pb.scrollIntoView({block:'nearest',inline:'nearest'});
   if(RENDER[id]) RENDER[id]();
   drawCurve(); paintMini();
   if(anchor){ const a=$(anchor); if(a){ if(a.tagName==='DETAILS') a.open=true; requestAnimationFrame(()=>a.scrollIntoView({behavior:'smooth',block:'start'})); } }
@@ -2245,6 +2301,10 @@ try{ const c=JSON.parse(localStorage.getItem(CHK_KEY)||'null'); if(c&&Array.isAr
 const saveChk=()=>{ try{ localStorage.setItem(CHK_KEY,JSON.stringify(CHK)); }catch(e){} };
 function sysChecks(){
   const R=[];
+  const su=S.suite;
+  R.push(!su?{s:'bad',t:'Mi suite',d:'Todavía no eliges tu programa de luces.',a:['Elegir suite',()=>showScreen('setup')]}:
+    su.via==='net'&&su.id==='qlc'?(QLC.ok?{s:'ok',t:'Mi suite',d:'QLC+ por red · '+qlcHost(su.host)}:{s:'bad',t:'Mi suite',d:'QLC+ sin conexión en '+qlcHost(su.host)+'. ¿Se abrió con -w?',a:['Reconectar',()=>qlcConnect(su.host).then(paintChecks).catch(paintChecks)]}):
+    {s:'ok',t:'Mi suite',d:SUITES[su.id].name+' por '+VIA_LABEL[su.via]+(su.via==='net'?' · '+su.host:''),a:['Cambiar',()=>showScreen('setup')]});
   R.push(!navigator.requestMIDIAccess?{s:'bad',t:'MIDI',d:'Esta ventana no tiene MIDI.'}:!midi?{s:'bad',t:'MIDI',d:'Sin permiso de MIDI. Cierra y vuelve a abrir la app.'}:{s:'ok',t:'MIDI',d:'Listo'});
   R.push(out?{s:'ok',t:'Salida a Pro DMX',d:out.name}:{s:'bad',t:'Salida a Pro DMX',d:'Elige el puerto de loopMIDI.',a:['Elegir puerto',()=>go('ajustes')]});
   R.push(loopWarn?{s:'bad',t:'APC mini',d:loopWarn,a:['Revisar',()=>go('ajustes')]}:thru?{s:'ok',t:'APC mini',d:thru.name+' · pasa por la app'}:{s:'opt',t:'APC mini',d:'Opcional · conectado directo a Pro DMX'});
@@ -2321,6 +2381,250 @@ function renderCheck(){
 setInterval(()=>{ if(screen==='check') paintChecks(); },1000);
 
 const RENDER={check:renderCheck,warm:()=>renderWip('warm'),open:()=>renderWip('open'),specials:()=>renderWip('specials'),pre:()=>renderWip('pre'),final:()=>renderWip('final')};
+// ================= MI SUITE: asistente por programa =================
+// Cada suite recibe las 4 secciones (Intro, Build, Drop, Break):
+// · por MIDI: la "señal estándar" (una nota por sección)
+// · por red: QLC+ (websocket) o Avolites Titan (Web API)
+const SUITES={
+  prodmx:{name:'Pro DMX',desc:'El flujo original de esta app: tus escenas por MIDI con loopMIDI.',vias:['midi']},
+  qlc:{name:'QLC+',desc:'Gratis y abierto. Se conecta directo por red, sin loopMIDI.',vias:['net','midi']},
+  sunlite:{name:'Sunlite Suite',desc:'Suite 2 y 3. Escenas disparadas por notas MIDI.',vias:['midi'],soon:'OS2L'},
+  ma2:{name:'grandMA2',desc:'Consola u onPC. Ejecutores disparados por MIDI.',vias:['midi'],soon:'Telnet'},
+  ma3:{name:'grandMA3',desc:'Consola u onPC. Ejecutores por MIDI Remotes.',vias:['midi'],soon:'OSC'},
+  titan:{name:'Avolites Titan',desc:'Playbacks por la Web API de Titan (red) o por MIDI.',vias:['net','midi']},
+  otro:{name:'Otro programa',desc:'Cualquier software o consola que aprenda notas MIDI.',vias:['midi']}
+};
+const VIA_LABEL={midi:'MIDI',net:'Red'};
+const SUITE_KEY_SECS=SECS;
+
+// ---------- QLC+ por websocket ----------
+const QLC={ws:null,fns:[],ok:false,host:''};
+function qlcHost(h){ h=String(h||'').trim().replace(/^wss?:\/\//,'').replace(/^https?:\/\//,'').split('/')[0]||'127.0.0.1'; return /:\d+$/.test(h)?h:h+':9999'; }
+function qlcConnect(host){
+  return new Promise((res,rej)=>{
+    try{ if(QLC.ws) QLC.ws.close(); }catch(e){}
+    let ws; try{ ws=new WebSocket('ws://'+qlcHost(host)+'/qlcplusWS'); }catch(e){ return rej(e); }
+    QLC.ws=ws; QLC.host=host; QLC.ok=false;
+    const t=setTimeout(()=>{ try{ ws.close(); }catch(e){} rej(new Error('timeout')); },3000);
+    ws.onopen=()=>ws.send('QLC+API|getFunctionsList');
+    ws.onmessage=e=>{ const p=String(e.data).split('|');
+      if(p[0]==='QLC+API'&&p[1]==='getFunctionsList'){ clearTimeout(t); QLC.fns=[]; for(let i=2;i+1<p.length;i+=2) QLC.fns.push({id:p[i],name:p[i+1]}); QLC.ok=true; res(QLC.fns); } };
+    ws.onerror=()=>{ clearTimeout(t); QLC.ok=false; rej(new Error('sin conexión')); };
+    ws.onclose=()=>{ if(QLC.ws===ws) QLC.ok=false; };
+  });
+}
+function qlcSend(cmd){
+  if(QLC.ws&&QLC.ws.readyState===1){ QLC.ws.send('QLC+API|'+cmd); return; }
+  const h=(S.suite&&S.suite.host)||QLC.host; if(!h) return;
+  qlcConnect(h).then(()=>QLC.ws.send('QLC+API|'+cmd)).catch(()=>{});
+}
+// ---------- Avolites Titan por Web API (puerto 4430, pasa por el puente de la app) ----------
+function titanUrl(host,path){ const h=normHost(host).replace(/:\d+$/,'')+':4430'; return BRIDGE?'/sk/'+h+'/'+path:'http://'+h+'/'+path; }
+async function titanGet(host,path,ms){
+  const ac=new AbortController(), t=setTimeout(()=>ac.abort(),(ms||1500)+600);
+  try{ const r=await fetch(titanUrl(host,path),BRIDGE?{signal:ac.signal,cache:'no-store',headers:{'X-Timeout':String(ms||1500)}}:{signal:ac.signal,mode:'no-cors'}); return BRIDGE?r.ok:true; }
+  catch(e){ return false; } finally{ clearTimeout(t); }
+}
+const titanFire=(host,n)=>titanGet(host,'titan/script/2/Playbacks/FirePlaybackAtLevel?handle_userNumber='+encodeURIComponent(n)+'&level_level=1&alwaysRefire=true');
+const titanKill=(host,n)=>titanGet(host,'titan/script/2/Playbacks/KillPlayback?handle_userNumber='+encodeURIComponent(n));
+
+// ---------- disparar una sección en la suite (red) ----------
+let curNet=null;
+function netFire(cfg,k){ if(!cfg||cfg.via!=='net') return; const v=(cfg.map||{})[k]; if(v==null||v==='') return;
+  if(cfg.id==='qlc') qlcSend('setFunctionStatus|'+v+'|1'); else if(cfg.id==='titan') titanFire(cfg.host,v); }
+function netRelease(cfg,k){ if(!cfg||cfg.via!=='net'||!k) return; const v=(cfg.map||{})[k]; if(v==null||v==='') return;
+  if(cfg.id==='qlc') qlcSend('setFunctionStatus|'+v+'|0'); else if(cfg.id==='titan') titanKill(cfg.host,v); }
+function suiteSection(k,t){
+  const cfg=S.suite; if(!cfg||cfg.via!=='net') return;
+  const s=stdKey(k); if(!s||s===curNet) return;
+  const prev=curNet; curNet=s;
+  setTimeout(()=>{ netRelease(cfg,prev); netFire(cfg,s); },Math.max(0,(t||0)-performance.now()));
+}
+function suiteOff(){ if(S.suite&&curNet) netRelease(S.suite,curNet); curNet=null; }
+
+// ---------- asistente ----------
+let WZ={suite:null,via:null,step:0,host:'',map:{},answer:null,msg:'',testing:null};
+function wzStart(id){
+  const cur=S.suite&&S.suite.id===id?S.suite:null, sd=SUITES[id];
+  WZ={suite:id,via:cur?cur.via:sd.vias[0],step:1,host:cur?cur.host||'':(id==='qlc'?'127.0.0.1':''),map:Object.assign({},cur?cur.map:{}),answer:null,msg:'',testing:null};
+  renderSetup(); requestAnimationFrame(()=>{ const w=$('wzBox'); if(w) w.scrollIntoView({behavior:'smooth',block:'start'}); });
+}
+const STEP_T=[null,['Conectar','Cómo llega la señal'],['Prepara tu programa','Lo que se hace allá'],['Asigna las secciones','Intro · Build · Drop · Break'],['Corre una escena','Prueba desde la app']];
+function prepSteps(id,via){
+  const midiPort='Crea un puerto virtual con <b>loopMIDI</b> (botón +) y elígelo en el paso 1.';
+  const P={
+    'prodmx|midi':['En Pro DMX, en <b>seleccionar entrada MIDI</b>, marca el puerto de loopMIDI. Nunca lo pongas como salida de Pro DMX.',
+      'Crea una escena por sección (Intro, Build, Drop, Break). Con <b>Mantener</b>, ponles <b>Auto release</b> para que se apaguen solas al soltar la nota.',
+      'En cada escena, asigna su trigger MIDI con la nota del paso 3 (botón <b>Mandar nota</b>).'],
+    'qlc|net':['Abre QLC+ con la web activada: en el acceso directo, al final del destino agrega <code>-w</code> (por ejemplo <code>qlcplus.exe -w</code>).',
+      'Carga tu proyecto y crea una escena o chaser por sección. La escena debe tener valores en sus canales: una escena vacía se detiene sola.',
+      'Si QLC+ está en otra computadora, conecta las dos a la misma red y usa la IP de esa computadora en el paso 1.'],
+    'qlc|midi':[midiPort,'En QLC+, en <b>Entradas/Salidas</b>, marca el puerto de loopMIDI como entrada de un universo.',
+      'En la <b>Consola virtual</b> crea un botón por sección con su escena. Si usas <b>Mantener</b>, ponlo en modo <b>Flash</b>.',
+      'En cada botón, usa <b>Entrada externa → Detectar</b> y pulsa <b>Mandar nota</b> en el paso 3.'],
+    'sunlite|midi':[midiPort,'En Sunlite, activa la entrada MIDI con el puerto de loopMIDI.',
+      'Crea un botón de escena por sección.',
+      'En las propiedades de cada botón, en sus disparadores, elige MIDI y usa el aprendizaje (learn) mientras pulsas <b>Mandar nota</b> en el paso 3.'],
+    'ma2|midi':['<b>onPC:</b> '+midiPort+' <b>Consola:</b> usa una interfaz USB-MIDI conectada al MIDI IN de la consola.',
+      'Activa la entrada MIDI en el Setup de la consola.',
+      'Pon cada sección en un ejecutor y configura su MIDI remote con la nota del paso 3. Con <b>Mantener</b>, usa el botón en modo Flash.'],
+    'ma3|midi':['<b>onPC:</b> '+midiPort+' <b>Consola:</b> usa una interfaz USB-MIDI conectada al MIDI IN de la consola.',
+      'Abre <b>Menu → In &amp; Out → MIDI Remotes</b>.',
+      'Crea un MIDI Remote por sección con la nota y el canal del paso 3, y como destino el ejecutor de esa sección.'],
+    'titan|net':['La Web API necesita <b>Titan Mobile o superior</b> (no funciona en Titan One ni en el simulador).',
+      'Activa el control remoto HTTP de Titan (Web API, puerto 4430) y conecta la consola a la misma red que esta computadora.',
+      'Graba un playback por sección y anota su <b>número de usuario</b> (se ve en la esquina superior izquierda del playback).'],
+    'titan|midi':['<b>Titan Mobile/onPC:</b> '+midiPort+' <b>Consola:</b> usa una interfaz USB-MIDI.',
+      'Activa la entrada MIDI en Titan y asigna a cada playback la nota de su sección (usa <b>Mandar nota</b> del paso 3).'],
+    'otro|midi':[midiPort+' Si es una consola, usa una interfaz USB-MIDI.',
+      'En tu programa, elige el puerto como entrada MIDI.',
+      'Asigna a cada escena la nota de su sección con el aprendizaje MIDI (learn) y el botón <b>Mandar nota</b> del paso 3.']
+  };
+  return P[id+'|'+via]||P['otro|midi'];
+}
+function fixTips(id,via){
+  if(via==='net'&&id==='qlc') return ['¿QLC+ se abrió con <code>-w</code>? Sin eso no hay conexión.','¿La escena tiene valores? Una escena vacía se detiene sola.','Si está en otra computadora, permite el puerto 9999 en su firewall.'];
+  if(via==='net'&&id==='titan') return ['¿Está activado el control remoto HTTP (Web API)?','¿El número de usuario es el del playback correcto?','Permite el puerto 4430 en la red y revisa la IP.'];
+  return ['¿Tu programa tiene el puerto de loopMIDI como <b>entrada</b>?','¿Coinciden el canal y la nota del paso 3?','Si la escena se prende y se apaga al instante, cambia a <b>Pulso</b> o pon la escena en modo flash.','Abajo en Main Show, "Último mensaje enviado" confirma que la app está mandando.'];
+}
+function midiSelect(){
+  const s=document.createElement('select'); s.add(new Option('— elige el puerto —',''));
+  if(midi) midi.outputs.forEach(o=>{ const e=new Option(o.name,o.id); if(out&&o.id===out.id) e.selected=true; s.add(e); });
+  s.onchange=()=>{ $('outSel').value=s.value; $('outSel').dispatchEvent(new Event('change')); renderSetup(); };
+  return s;
+}
+function wzFire(k){
+  const cfg={id:WZ.suite,via:WZ.via,host:WZ.host,map:WZ.map};
+  if(WZ.testing) wzRelease();
+  WZ.testing=k;
+  if(WZ.via==='net') netFire(cfg,k);
+  else { if(S.std.mode==='hold') on(stdNote(k)); else tap1(stdNote(k),performance.now()); }
+  document.querySelectorAll('.testpads .sec').forEach(b=>b.classList.toggle('live',b.dataset.s===k));
+}
+function wzRelease(){
+  const k=WZ.testing; if(!k) return; WZ.testing=null;
+  if(WZ.via==='net') netRelease({id:WZ.suite,via:WZ.via,host:WZ.host,map:WZ.map},k);
+  else if(S.std.mode==='hold') off(stdNote(k));
+  document.querySelectorAll('.testpads .sec').forEach(b=>b.classList.remove('live'));
+}
+function wzFinish(){
+  wzRelease();
+  S.suite={id:WZ.suite,via:WZ.via,host:WZ.host,map:Object.assign({},WZ.map)};
+  if(WZ.via==='midi'){ S.std.on=true; if(WZ.suite!=='prodmx') S.std.send='std'; }
+  if(WZ.suite!=='prodmx'&&playing) allOff(performance.now());
+  curNet=null; save(); renderStd(); renderSecs(); paintSuiteBtn();
+  if(playing){ suiteSection(live,performance.now()+10); if(S.std.on) sendStd(live,performance.now()+10); }
+  WZ.step=5; renderSetup();
+}
+function paintSuiteBtn(){
+  const b=$('suiteBtn'); if(!b) return;
+  b.innerHTML=S.suite?'Suite: <b>'+esc1(SUITES[S.suite.id].name)+'</b> · '+VIA_LABEL[S.suite.via]:'Elegir mi suite';
+}
+function renderSetup(){
+  const box=$('scr-setup'); box.innerHTML='';
+  const hello=el('div','hello');
+  const h2=el('h2',null,'¡Hola! '); h2.appendChild(el('em',null,'Selecciona tu suite')); hello.appendChild(h2);
+  hello.appendChild(el('p',null,'Cada venue usa su programa de luces. Elige el tuyo y te guío desde la conexión hasta correr una escena desde esta app.'));
+  box.appendChild(hello);
+  const grid=el('div','suites');
+  Object.entries(SUITES).forEach(([id,sd])=>{
+    const c=el('button','suite'+(WZ.suite===id?' sel':'')+(S.suite&&S.suite.id===id?' cur':''));
+    c.appendChild(el('strong',null,sd.name)); c.appendChild(el('span',null,sd.desc));
+    const v=el('div','vias'); sd.vias.forEach(x=>v.appendChild(el('span','via',VIA_LABEL[x]))); if(sd.soon) v.appendChild(el('span','via soon',sd.soon+' · próximamente'));
+    c.appendChild(v); c.onclick=()=>wzStart(id); grid.appendChild(c);
+  });
+  box.appendChild(grid);
+  if(!WZ.suite) return;
+  const sd=SUITES[WZ.suite];
+  const wz=el('div','wz'); wz.id='wzBox';
+  // pasos
+  const st=el('nav','steps'); st.setAttribute('aria-label','Pasos');
+  for(let i=1;i<=4;i++){ const b=el('button','stp'+(WZ.step===i?' on':'')+(WZ.step>i?' done':'')); const ic=el('i',null,WZ.step>i?'✓':String(i)); b.appendChild(ic);
+    const d=el('div'); d.appendChild(el('b',null,STEP_T[i][0])); d.appendChild(el('small',null,STEP_T[i][1])); b.appendChild(d);
+    b.onclick=()=>{ wzRelease(); WZ.step=i; renderSetup(); }; st.appendChild(b); }
+  wz.appendChild(st);
+  const body=el('section','panel wzbody');
+  const T=(t,s)=>{ body.appendChild(el('h3','ptitle',t)); if(s) body.appendChild(el('p','psub',s)); };
+  const foot=()=>{ const f=el('div','wzfoot'); const back=el('button',null,'← Atrás'); back.disabled=WZ.step<=1; back.onclick=()=>{ wzRelease(); WZ.step--; renderSetup(); };
+    f.appendChild(back); if(WZ.step<4){ const nx=el('button','go','Siguiente →'); nx.onclick=()=>{ WZ.step++; renderSetup(); }; f.appendChild(nx); } body.appendChild(f); };
+
+  if(WZ.step===1){
+    T(sd.name+': cómo se conecta', sd.vias.length>1?'Elige cómo le llega la señal.':null);
+    if(sd.vias.length>1){ const vp=el('div','vpick');
+      sd.vias.forEach(v=>{ const b=el('button',WZ.via===v?'sel':null); b.appendChild(el('b',null,v==='net'?'Por red (recomendado)':'Por MIDI'));
+        b.appendChild(el('small',null,v==='net'?(WZ.suite==='qlc'?'Websocket de QLC+, sin loopMIDI':'Web API de Titan, puerto 4430'):'Notas MIDI con loopMIDI o interfaz USB'));
+        b.onclick=()=>{ WZ.via=v; WZ.msg=''; renderSetup(); }; vp.appendChild(b); });
+      body.appendChild(vp); }
+    const cn=el('div','conn');
+    if(WZ.via==='midi'){
+      const l=el('label','f','Salida MIDI de esta app'); l.appendChild(midiSelect()); cn.appendChild(l);
+      cn.appendChild(el('div','msg',!midi?'Esta app no tiene permiso de MIDI.':out?'✓ Mandando a '+out.name:'Si no ves tu puerto, crea uno en loopMIDI (Windows) y vuelve a esta pantalla.'));
+    } else {
+      const l=el('label','f',WZ.suite==='qlc'?'IP de la computadora con QLC+':'IP de la consola Titan');
+      const ip=document.createElement('input'); ip.type='text'; ip.value=WZ.host; ip.placeholder=WZ.suite==='qlc'?'127.0.0.1 si está en esta PC':'192.168.1.50'; ip.style.width='240px';
+      ip.onchange=()=>{ WZ.host=ip.value.trim(); }; l.appendChild(ip); cn.appendChild(l);
+      const tb=el('button',null,'Probar conexión'); cn.appendChild(tb);
+      const msg=el('div','msg',WZ.msg||''); msg.innerHTML=WZ.msg||''; cn.appendChild(msg);
+      tb.onclick=async()=>{ WZ.host=ip.value.trim(); msg.textContent='Probando…';
+        if(WZ.suite==='qlc'){ try{ const f=await qlcConnect(WZ.host); WZ.msg='<b class="ok">✓ Conectado a QLC+ · '+f.length+' funciones en el proyecto</b>'; }
+          catch(e){ WZ.msg='<b class="bad">No hay respuesta de QLC+ en '+esc1(qlcHost(WZ.host))+'. Revisa que se abrió con -w (paso 2).</b>'; } }
+        else { const ok=await titanGet(WZ.host,'titan/get/Titan/DeviceInfo',2000); WZ.msg=ok?'<b class="ok">✓ Titan responde en '+esc1(normHost(WZ.host).replace(/:\d+$/,''))+':4430</b>':'<b class="bad">Titan no responde. Revisa la IP y que la Web API esté activa (paso 2).</b>'; }
+        msg.innerHTML=WZ.msg; };
+    }
+    body.appendChild(cn);
+  }
+  if(WZ.step===2){
+    T('Prepara '+sd.name,'Haz esto una sola vez en tu programa.');
+    const ol=el('ol','howto2'); prepSteps(WZ.suite,WZ.via).forEach(h=>{ const li=el('li'); li.innerHTML='<span>'+h+'</span>'; ol.appendChild(li); }); body.appendChild(ol);
+  }
+  if(WZ.step===3){
+    const net=WZ.via==='net';
+    T('Asigna las secciones', net?(WZ.suite==='qlc'?'Elige qué función de QLC+ corre en cada sección.':'Escribe el número de usuario del playback de cada sección.'):'Cada sección manda su nota. Usa "Mandar nota" mientras tu programa está aprendiendo (learn).');
+    if(!net){ const o=el('div','conn');
+      const lc=el('label','f','Canal MIDI'); const ch=document.createElement('input'); ch.type='number'; ch.min=1; ch.max=16; ch.value=S.std.ch;
+      ch.onchange=()=>{ stdOff(performance.now()); S.std.ch=Math.max(1,Math.min(16,+ch.value||16)); save(); renderSetup(); }; lc.appendChild(ch); o.appendChild(lc);
+      const lm=el('label','f','Cómo se manda'); const md=document.createElement('select'); md.add(new Option('Mantener (escena prendida toda la sección)','hold')); md.add(new Option('Pulso (un toque al entrar)','pulse')); md.value=S.std.mode;
+      md.onchange=()=>{ stdOff(performance.now()); S.std.mode=md.value; save(); }; lm.appendChild(md); o.appendChild(lm); body.appendChild(o); }
+    const rows=el('div','maprows');
+    SECS.forEach(k=>{ const r=el('div','maprow'); r.dataset.s=k; r.appendChild(el('b',null,SLABEL[k]));
+      if(!net){ r.appendChild(el('span','nt','Canal '+S.std.ch+' · nota '+S.std.notes[k])); const b=el('button',null,'Mandar nota'); b.onclick=()=>tap1(stdNote(k),performance.now()); r.appendChild(b); }
+      else if(WZ.suite==='qlc'){
+        const s=document.createElement('select'); s.add(new Option(QLC.fns.length?'— elige una función —':'Conéctate en el paso 1','')); QLC.fns.forEach(f=>s.add(new Option(f.name+' · #'+f.id,f.id)));
+        if(WZ.map[k]==null){ const g=QLC.fns.find(f=>new RegExp(k==='build'?'build|subida|riser':k,'i').test(f.name)); if(g) WZ.map[k]=g.id; }
+        s.value=WZ.map[k]!=null?String(WZ.map[k]):''; s.onchange=()=>{ WZ.map[k]=s.value; }; r.appendChild(s);
+        const t=el('button',null,'Probar'); t.onclick=()=>wzFire(k); r.appendChild(t);
+      } else {
+        const n=document.createElement('input'); n.type='number'; n.min=1; n.placeholder='Número de usuario'; n.value=WZ.map[k]!=null?WZ.map[k]:''; n.onchange=()=>{ WZ.map[k]=n.value; }; r.appendChild(n);
+        const t=el('button',null,'Probar'); t.onclick=()=>wzFire(k); r.appendChild(t);
+      }
+      rows.appendChild(r); });
+    body.appendChild(rows);
+    if(net&&WZ.suite==='qlc'&&!QLC.ok&&WZ.host){ qlcConnect(WZ.host).then(()=>renderSetup()).catch(()=>{}); }
+  }
+  if(WZ.step===4){
+    T('Corre una escena desde la app','Toca una sección: tu programa debe prender su escena. Toca otra para cambiar.');
+    const tp=el('div','testpads');
+    SECS.forEach((k,i)=>{ const b=el('button','sec'); b.dataset.s=k; b.innerHTML='<span class="hc">'+(WZ.via==='net'?(WZ.suite==='qlc'?'QLC+':'TITAN'):'NOTA '+S.std.notes[k])+'</span><strong></strong><span>sección '+(i+1)+'</span>';
+      b.querySelector('strong').textContent=SLABEL[k]; b.onclick=()=>wzFire(k); tp.appendChild(b); });
+    body.appendChild(tp);
+    const offb=el('button',null,'Soltar escena'); offb.onclick=wzRelease; body.appendChild(offb);
+    const ask=el('div','ask'); ask.appendChild(el('b',null,'¿Se prendió la escena en '+sd.name+'?'));
+    const y=el('button','go','Sí, funciona'); y.style.cssText='background:var(--strong);color:var(--onstrong);border-color:var(--strong);font-weight:600'; y.onclick=wzFinish;
+    const n=el('button',null,'No'); n.onclick=()=>{ WZ.answer='no'; renderSetup(); };
+    ask.appendChild(y); ask.appendChild(n); body.appendChild(ask);
+    if(WZ.answer==='no'){ const ul=el('ul','fix'); fixTips(WZ.suite,WZ.via).forEach(t=>{ const li=el('li'); li.innerHTML=t; ul.appendChild(li); }); body.appendChild(ul); }
+  }
+  if(WZ.step===5){
+    const ok=el('div','okbox'); ok.innerHTML='<b>Listo: el show manda a '+esc1(sd.name)+' por '+VIA_LABEL[WZ.via]+'.</b><p class="psub" style="margin:6px 0 0">Cada vez que cambie la sección (a mano, en automático o con ShowKontrol), '+esc1(sd.name)+' corre su escena.'+(WZ.suite!=='prodmx'?' Las escenas de Pro DMX de esta app quedan apagadas.':'')+'</p>';
+    body.appendChild(ok);
+    const f=el('div','wzfoot'); const g1=el('button','go','Ir a Main Show'); g1.onclick=()=>showScreen('main','player'); const g2=el('button',null,'Ir a Check'); g2.onclick=()=>showScreen('check');
+    f.appendChild(g2); f.appendChild(g1); body.appendChild(f);
+  } else foot();
+  wz.appendChild(body); box.appendChild(wz);
+}
+RENDER.setup=renderSetup;
+if(S.suite&&S.suite.via==='net'&&S.suite.id==='qlc'&&S.suite.host) qlcConnect(S.suite.host).catch(()=>{});
+$('suiteBtn').onclick=()=>showScreen('setup'); paintSuiteBtn();
 renderOverview(); setBpm(S.bpm); renderSecs(); renderEditor(); renderCat(); renderSongs(); renderStd(); paint(-1,[],0,live);
 showScreen(screen);
 })();
