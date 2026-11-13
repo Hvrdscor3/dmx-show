@@ -419,6 +419,86 @@ details.panel>summary::-webkit-details-marker{display:none}
 .updbtn.ready{background:var(--strong);color:var(--onstrong);border-color:var(--strong);font-weight:600}
 .updbtn:disabled{opacity:.7;cursor:default}
 @media (max-width:640px){.panel,.tile-mint,.tile-navy{padding:14px}.jump a{font-size:12px;padding:6px 10px}}
+
+/* ================= FASES DE LA NOCHE ================= */
+.night{position:sticky;top:0;z-index:30;display:flex;gap:10px;align-items:stretch;padding:8px 0;margin-top:-6px;background:color-mix(in srgb,var(--page) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.night-track{position:relative;flex:1;min-width:0;display:flex;gap:12px;background:var(--chassis);border:1px solid var(--chassisEdge);border-radius:16px;padding:6px;overflow-x:auto;scrollbar-width:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.night-track::-webkit-scrollbar{display:none}
+.ng{display:flex;gap:4px;flex:var(--g) 1 0;min-width:0}
+.night-curve{position:absolute;left:0;top:0;z-index:2;pointer-events:none;overflow:visible}
+.ph{--pc:#888;flex:var(--w) 1 0;min-width:92px;position:relative;text-align:left;border:1px solid #0b0b0c;border-radius:10px;padding:30px 10px 8px;background:linear-gradient(180deg,#303136,#222327);color:#c9cbd2;display:flex;flex-direction:column;gap:2px;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 2px 0 #0a0a0b}
+.ph:hover{border-color:#0b0b0c;filter:brightness(1.12)}
+.ph b{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:#e9eaee;white-space:nowrap}
+.ph small{font-size:11px;color:#8d919b;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph .n{position:absolute;right:9px;bottom:8px;font-family:var(--mono);font-size:10px;color:#5d616b}
+.ph.cur{background:linear-gradient(180deg,color-mix(in srgb,var(--pc) 30%,#303136),#232428);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 2px var(--pc),0 0 18px color-mix(in srgb,var(--pc) 35%,transparent)}
+.ph.cur small{color:#d6d8de}
+.ph:focus-visible{outline:2px solid var(--pc);outline-offset:2px}
+.night-mini{flex:none;width:210px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;text-align:left;background:var(--lcd);border:1px solid #000;border-radius:14px;padding:8px 12px;color:var(--lcdTxt);box-shadow:inset 0 0 18px rgba(0,0,0,.9),0 0 0 1px #2b2d33}
+.night-mini:hover{border-color:#000;box-shadow:inset 0 0 18px rgba(0,0,0,.9),0 0 0 1px #4a4d55}
+.night-mini i{grid-row:span 2;width:10px;height:10px;border-radius:50%;background:#2a3340}
+.night-mini.on i{background:var(--ml,#2ef08a);box-shadow:0 0 10px var(--ml,#2ef08a)}
+.night-mini .ms{font-family:var(--serif);font-style:italic;font-size:21px;line-height:1.05;color:var(--ml,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.night-mini .mm{font-family:var(--mono);font-size:10.5px;color:var(--lcdDim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.night-mini .mm b{color:var(--lcdTxt);font-weight:500}
+.screen{display:flex;flex-direction:column;gap:16px}
+.screen[hidden]{display:none}
+.screen>*{scroll-margin-top:calc(var(--railh,0px) + 64px)}
+.jump{top:var(--railh,0px)}
+.phead{--pc:#888;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 20px;padding:6px 2px 2px;border-bottom:2px solid var(--pc)}
+.phead h2{font-size:34px;letter-spacing:-.02em;padding-bottom:10px}
+.phead h2 em{font-size:36px;color:var(--muted)}
+.phead p{margin:0 0 12px;color:var(--muted);max-width:56ch;line-height:1.5}
+.wipbadge{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--ink);padding:6px 12px;border-radius:999px;border:1px dashed var(--pc);margin-bottom:12px}
+.wipbadge::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pc);animation:blink 1.4s steps(2) infinite}
+@media (prefers-reduced-motion:reduce){.wipbadge::before{animation:none}}
+.pgrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.pgrid{grid-template-columns:minmax(0,1fr)}.night-mini{width:160px}}
+.ptitle{font-size:15px;font-weight:600;margin:0 0 4px;color:var(--ink);text-transform:none;letter-spacing:0}
+.psub{font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.5}
+.plan{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.plan li{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--ice2)}
+.plan li::before{content:"";width:12px;height:12px;margin-top:3px;border-radius:4px;border:1.5px dashed var(--pc)}
+.plan b{display:block;font-size:13.5px;font-weight:600}
+.plan span{font-size:12.5px;color:var(--muted);line-height:1.5}
+.acts2{display:flex;flex-direction:column;gap:8px}
+.acts2 button{text-align:left;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.acts2 button small{color:var(--muted);font-size:12px;font-weight:400;text-align:right}
+.acts2 button.danger{background:var(--hot);border-color:var(--hot);color:#fff}
+.acts2 button.danger small{color:#ffe1e7}
+.acts2 .songrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--ice2)}
+.acts2 .songrow div{flex:1;min-width:0}
+.acts2 .songrow b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acts2 .songrow small{color:var(--muted);font-size:12px}
+.acts2 .songrow button{padding:7px 12px;flex:none;background:var(--strong);color:var(--onstrong);border-color:var(--strong);font-weight:600}
+.ready{--rc:var(--hot);display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;justify-content:space-between;padding:16px 20px;border-radius:18px;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--rc)}
+.ready.ok{--rc:var(--go)}
+.ready strong{font-size:22px;letter-spacing:-.01em}
+.ready p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.ready .row{gap:8px}
+.chk{display:flex;flex-direction:column}
+.chk-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.chk-row:first-child{border-top:0}
+.chk-row i{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.chk-row.s-ok i{background:var(--go);box-shadow:0 0 8px var(--go)}
+.chk-row.s-bad i{background:var(--hot);box-shadow:0 0 8px var(--hot)}
+.chk-row.s-warn i{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+.chk-row.s-opt i{background:transparent;border:1.5px solid var(--muted)}
+.chk-row b{display:block;font-size:13.5px;font-weight:600}
+.chk-row span{display:block;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.chk-row button{padding:6px 11px;font-size:12px}
+.sweep{display:flex;flex-direction:column;gap:10px;margin-top:6px;padding-top:14px;border-top:1px solid var(--line)}
+.sweep .bar{height:6px;border-radius:3px;background:var(--ice2);overflow:hidden}
+.sweep .bar i{display:block;height:100%;width:0;background:var(--strong);transition:width .2s}
+.sweep .now{font-family:var(--mono);font-size:12px;color:var(--muted);min-height:1.4em}
+.list{display:flex;flex-direction:column;gap:6px}
+.li{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:var(--ice2);border:1px solid var(--line)}
+.li label{flex:1;display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer;min-width:0}
+.li.done label span{color:var(--muted);text-decoration:line-through}
+.li .x{padding:2px 8px;font-size:14px;line-height:1;background:transparent;border-color:transparent;color:var(--muted)}
+.li .x:hover{border-color:var(--line);color:var(--hot)}
+.addli{display:flex;gap:8px;margin-top:8px}
+.addli input{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -427,6 +507,10 @@ details.panel>summary::-webkit-details-marker{display:none}
     <h1>DMX <em>Show</em><sup>♪</sup></h1>
     <div class="row" style="align-items:center"><div class="status" id="status">MIDI: <b>iniciando…</b></div><span class="appver" id="appVer" hidden><span class="verpill" id="verPill">v—</span><button id="updBtn" class="updbtn">Buscar actualización</button></span><button id="themeBtn" class="themebtn">◐ Tema: automático</button></div>
   </header>
+
+  <nav class="night" id="night" aria-label="Fases de la noche"></nav>
+
+  <main class="screen" id="scr-main" data-screen="main">
 
   <nav class="jump" aria-label="Secciones de la app">
     <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
@@ -705,6 +789,13 @@ details.panel>summary::-webkit-details-marker{display:none}
   </div>
 
   <p class="foot">Luces que corren con la música</p>
+  </main>
+  <section class="screen" id="scr-check" data-screen="check" hidden></section>
+  <section class="screen" id="scr-warm" data-screen="warm" hidden></section>
+  <section class="screen" id="scr-open" data-screen="open" hidden></section>
+  <section class="screen" id="scr-specials" data-screen="specials" hidden></section>
+  <section class="screen" id="scr-pre" data-screen="pre" hidden></section>
+  <section class="screen" id="scr-final" data-screen="final" hidden></section>
 </div>
 
 <script>
@@ -1491,7 +1582,7 @@ $('stdSheet').onclick=()=>{
   const nn=n=>NAMES[n%12]+(Math.floor(n/12)-1);
   const rows=SECS.map(k=>'<tr><td><b>'+SLABEL[k].toUpperCase()+'</b></td><td>'+S.std.ch+'</td><td>'+S.std.notes[k]+' ('+nn(S.std.notes[k])+')</td><td>'+esc(S.std.desc[k])+'</td></tr>').join('');
   const modo=S.std.mode==='hold'?'La nota queda prendida toda la sección y se suelta al cambiar. Programa cada escena como <b>flash</b> (Pro DMX: Auto release; Sunlite: Flash; QLC+: botón en modo Flash).':'Llega un solo toque al entrar a la sección. Programa cada escena para que <b>se active con la nota y apague a las demás</b> (por ejemplo, botones en un mismo grupo/solo).';
-  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Secciones estándar</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;padding:0 16px;color:#111}h1{font-size:24px}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #bbb;padding:8px 10px;text-align:left;vertical-align:top;font-size:14px}th{background:#eef2f7}p,li{line-height:1.5;font-size:14px}</style></head><body>'+
+  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Secciones estándar</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;padding:0 16px;color:#111}h1{font-size:24px}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #bbb;padding:8px 10px;text-align:left;vertical-align:top;font-size:14px}th{background:#eef2f7}p,li{line-height:1.5;font-size:14px}<\/style></head><body>'+
     '<h1>Secciones estándar de luces</h1><p>El control manda una nota MIDI cuando el show cambia de sección. Cada venue programa <b>con sus propios equipos</b> una escena por sección y le asigna la nota de esta tabla.</p>'+
     '<table><thead><tr><th>Sección</th><th>Canal MIDI</th><th>Nota</th><th>Cómo se debe ver</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     '<p><b>Cómo llega la señal:</b> '+modo+'</p><ul><li>Usa solo esas notas en ese canal para estas escenas; no las repitas en otras.</li><li>Prueba cada escena con el botón Probar del control antes del evento.</li><li>Si algo se queda prendido, el control manda “todas las notas apagadas” en el botón Apagar todo.</li></ul></body></html>';
@@ -1954,7 +2045,7 @@ applyTheme();
 // ---------- dock: ordenar las secciones de la página ----------
 (function(){
   const DOCK_KEY='dmxOrdenSecciones';
-  const dock=document.querySelector('.jump'), wrap=document.querySelector('.wrap'), foot=document.querySelector('.foot'), ctl=dock.querySelector('.dockctl');
+  const dock=document.querySelector('.jump'), foot=document.querySelector('.foot'), wrap=foot.parentNode, ctl=dock.querySelector('.dockctl');
   const links=[...dock.querySelectorAll('a')];
   const blockOf=a=>document.getElementById(a.getAttribute('href').slice(1));
   links.forEach(a=>{ a.dataset.b=a.getAttribute('href').slice(1);
@@ -2009,7 +2100,229 @@ if(window.dmxApp){
     clearTimeout(updT); if(s.state==='latest') updT=setTimeout(()=>{ if(updState==='latest') vb.textContent='Buscar actualización'; },5000); });
   vb.onclick=()=>{ if(updState==='ready') dmxApp.installUpdate(); else dmxApp.checkUpdate(); };
 }
+// ================= FASES DE LA NOCHE =================
+const PHASES=[
+  {id:'check',name:'CHECK',sub:'Antes de abrir',c:'#9aa3b5',w:1.25,e:.08,g:0},
+  {id:'warm',name:'WARM UP',sub:'Puertas abiertas',c:'#3f9bff',w:1.5,e:.3,g:0},
+  {id:'open',name:'OPEN SHOW',sub:'Arranque',c:'#a97dff',w:1.1,e:.72,g:1},
+  {id:'main',name:'MAIN SHOW',sub:'Pista llena',c:'#2ef08a',w:2.2,e:1,g:1},
+  {id:'specials',name:'SPECIALS',sub:'Momentos',c:'#ff8a1f',w:1.2,e:.84,g:1},
+  {id:'pre',name:'PRE CLOSING',sub:'Bajar energía',c:'#22d3e6',w:1.3,e:.48,g:2},
+  {id:'final',name:'FINAL',sub:'Cierre',c:'#ff5470',w:1,e:.12,g:3}];
+const PH=id=>PHASES.find(p=>p.id===id);
+const SCR_KEY='dmxPantalla';
+let screen='main'; try{ screen=localStorage.getItem(SCR_KEY)||'main'; }catch(e){}
+if(!PH(screen)) screen='main';
+
+// riel
+const night=$('night');
+const track=el('div','night-track');
+const curve=document.createElementNS('http://www.w3.org/2000/svg','svg'); curve.setAttribute('class','night-curve'); curve.setAttribute('aria-hidden','true');
+track.appendChild(curve);
+[0,1,2,3].forEach(gi=>{
+  const list=PHASES.filter(p=>p.g===gi), g=el('div','ng'); g.style.setProperty('--g',list.reduce((a,p)=>a+p.w,0));
+  list.forEach(p=>{ const b=el('button','ph'); b.id='ph_'+p.id; b.style.setProperty('--pc',p.c); b.style.setProperty('--w',p.w);
+    b.title=p.name+' · '+p.sub+' (F'+(PHASES.indexOf(p)+1)+')';
+    b.appendChild(el('b',null,p.name)); b.appendChild(el('small',null,p.sub)); b.appendChild(el('span','n',String(PHASES.indexOf(p)+1)));
+    b.onclick=()=>showScreen(p.id); g.appendChild(b); });
+  track.appendChild(g); });
+night.appendChild(track);
+const mini=el('button','night-mini'); mini.title='Ir al reproductor (Main Show)';
+mini.innerHTML='<i></i><span class="ms">—</span><span class="mm">—</span>';
+mini.onclick=()=>showScreen('main','player');
+night.appendChild(mini);
+
+// curva de energía de la noche sobre los botones
+function drawCurve(){
+  const W=track.scrollWidth, H=track.clientHeight; if(!W) return;
+  curve.setAttribute('width',W); curve.setAttribute('height',H); curve.setAttribute('viewBox','0 0 '+W+' '+H);
+  const pts=PHASES.map(p=>{ const b=$('ph_'+p.id); return {x:b.offsetLeft+b.offsetWidth/2, y:7+(1-p.e)*17, p}; });
+  const L=$('ph_'+PHASES[0].id), R=$('ph_'+PHASES[PHASES.length-1].id);
+  const all=[{x:L.offsetLeft+6,y:25}].concat(pts,[{x:R.offsetLeft+R.offsetWidth-6,y:25}]);
+  let d='M'+all[0].x+' '+all[0].y;
+  for(let i=0;i<all.length-1;i++){ const p0=all[Math.max(0,i-1)], p1=all[i], p2=all[i+1], p3=all[Math.min(all.length-1,i+2)];
+    d+=' C'+(p1.x+(p2.x-p0.x)/6)+' '+(p1.y+(p2.y-p0.y)/6)+' '+(p2.x-(p3.x-p1.x)/6)+' '+(p2.y-(p3.y-p1.y)/6)+' '+p2.x+' '+p2.y; }
+  let h='<defs><linearGradient id="nightG" x1="0" x2="'+W+'" gradientUnits="userSpaceOnUse">'+pts.map(q=>'<stop offset="'+(q.x/W)+'" stop-color="'+q.p.c+'"/>').join('')+'</linearGradient></defs>';
+  h+='<path d="'+d+'" fill="none" stroke="url(#nightG)" stroke-width="2" stroke-linecap="round" opacity=".9"/>';
+  pts.forEach(q=>{ const cur=q.p.id===screen; h+='<circle cx="'+q.x+'" cy="'+q.y+'" r="'+(cur?5:3)+'" fill="'+(cur?q.p.c:'#16171b')+'" stroke="'+q.p.c+'" stroke-width="'+(cur?2:1.5)+'"'+(cur?' style="filter:drop-shadow(0 0 5px '+q.p.c+')"':'')+'/>'; });
+  curve.innerHTML=h;
+}
+try{ new ResizeObserver(()=>{ document.documentElement.style.setProperty('--railh',night.offsetHeight+'px'); drawCurve(); }).observe(night); }catch(e){}
+
+// mini deck: el show sigue corriendo aunque estés en otra pantalla
+function paintMini(){
+  const c=ledOf(live), ps=playSong();
+  mini.classList.toggle('on',!!playing); mini.style.setProperty('--ml',c);
+  mini.querySelector('.ms').textContent=labelOf(live);
+  mini.querySelector('.mm').innerHTML='<b>'+String(S.bpm).replace(/\.0$/,'')+'</b> BPM · '+(ext?'clock ext':playing?'sonando':'detenido')+(mode==='song'&&ps?' · '+esc1(ps.name):'');
+}
+setInterval(paintMini,250);
+
+function showScreen(id,anchor){
+  if(!PH(id)) id='main';
+  const changed=id!==screen; screen=id; try{ localStorage.setItem(SCR_KEY,id); }catch(e){}
+  document.querySelectorAll('.screen').forEach(x=>x.hidden=x.dataset.screen!==id);
+  PHASES.forEach(p=>$('ph_'+p.id).classList.toggle('cur',p.id===id));
+  $('ph_'+id).scrollIntoView({block:'nearest',inline:'nearest'});
+  if(RENDER[id]) RENDER[id]();
+  drawCurve(); paintMini();
+  if(anchor){ const a=$(anchor); if(a){ if(a.tagName==='DETAILS') a.open=true; requestAnimationFrame(()=>a.scrollIntoView({behavior:'smooth',block:'start'})); } }
+  else if(changed) window.scrollTo(0,0);
+}
+document.addEventListener('keydown',e=>{ const m=/^F([1-7])$/.exec(e.key); if(!m) return; e.preventDefault(); showScreen(PHASES[+m[1]-1].id); });
+
+// cabecera común
+function phaseHead(id,title,sub,desc,wip){
+  const p=PH(id), h=el('div','phead'); h.style.setProperty('--pc',p.c);
+  const l=el('div'); const h2=el('h2',null,title+' '); const em=el('em',null,sub); h2.appendChild(em); l.appendChild(h2);
+  if(desc) l.appendChild(el('p',null,desc)); h.appendChild(l);
+  if(wip) h.appendChild(el('span','wipbadge','En desarrollo'));
+  return h;
+}
+const go=anchor=>showScreen('main',anchor);
+
+// pantallas en desarrollo: qué van a hacer + lo que ya sirve hoy
+const WIP={
+  warm:{title:'Warm up',sub:'puertas abiertas',desc:'La gente va llegando y la pista está vacía. Luz que acompaña sin cansar.',
+    plan:[['Ambiente de baja energía','Colores fríos que cambian lento y movimiento suave, sin strobo ni láser.'],
+          ['Límite de intensidad','Un tope de brillo para que el club no se vea vacío ni deslumbre.'],
+          ['Subida automática con la hora','La energía crece sola hasta la hora del Open show.'],
+          ['Escenas de bienvenida','Logos, gobos o luz de barra para la entrada.']],
+    acts:()=>[['Tocar la Intro en Main Show','Abre el reproductor en Intro',()=>{ go('player'); pickSection('intro'); }],
+              ['Configurar show automático','Compases por sección',()=>go('ajustes')]]},
+  open:{title:'Open show',sub:'arranque',desc:'El momento en que la noche se enciende: del ambiente al primer golpe fuerte.',
+    plan:[['Cuenta regresiva','Un reloj hacia la hora de apertura, visible en la cabina.'],
+          ['Secuencia de apertura','Blackout, golpe de blinder y entrada de todo el rig, en un solo botón.'],
+          ['Sincronía con el primer drop','Que el arranque caiga en el compás 1 del CDJ master.'],
+          ['Humo y strobo coordinados','Disparos en momentos exactos de la secuencia.']],
+    acts:()=>[['Ir al reproductor','Hot cues de secciones',()=>go('player')],
+              ['Conectar ShowKontrol','Seguir el compás del CDJ master',()=>go('skPanel')]]},
+  specials:{title:'Specials',sub:'momentos',desc:'Lo que interrumpe el show a propósito: cumpleaños, botellas, anuncios, una canción especial.',
+    plan:[['Botones de momento','Cumpleaños, servicio de botellas o anuncio del MC con su propia escena.'],
+          ['Entrar y regresar','El especial interrumpe y la app regresa sola a la sección donde estabas.'],
+          ['Cola de especiales','Prepara los momentos de la noche y dispáralos en orden.']],
+    acts:()=>S.songs.map(sg=>({song:sg})).concat([['Editar canciones especiales','Main Show · Canciones',()=>go('songs')]])},
+  pre:{title:'Pre closing',sub:'bajar energía',desc:'La recta final: la energía baja de a poco hasta la última canción.',
+    plan:[['Bajada gradual','Menos strobo y movimiento cada cierto número de compases.'],
+          ['Última canción','Un botón para marcar el último tema y darle su propia escena.'],
+          ['Aviso de cierre','Escena para avisar al público sin cortar la música.']],
+    acts:()=>[['Ir al reproductor','Main Show',()=>go('player')],
+              ['Tocar Break','Sección de bajón',()=>{ go('player'); pickSection('break'); }]]},
+  final:{title:'Final',sub:'cierre',desc:'Se acaba la noche: salida segura y todo apagado en orden.',
+    plan:[['Luces de salida','Una escena de trabajo para que el público salga y el staff limpie.'],
+          ['Apagado en orden','Láser, humo y moving heads se apagan por pasos, no de golpe.'],
+          ['Resumen de la noche','Cuánto duró cada fase y qué canciones especiales sonaron.']],
+    acts:()=>[['Detener el show','Para el reproductor',()=>{ if(playing) stop(); }],
+              ['Todo apagado en Pro DMX','Si apagaste escenas a mano',()=>$('resync').click()],
+              ['Apagar todo','Manda apagado a todas las escenas',()=>panic(),'danger']]}
+};
+function renderWip(id){
+  const box=$('scr-'+id), w=WIP[id], p=PH(id); box.innerHTML='';
+  box.appendChild(phaseHead(id,w.title,w.sub,w.desc,true));
+  const g=el('div','pgrid');
+  const left=el('section','panel');
+  left.appendChild(el('h3','ptitle','Lo que va a hacer'));
+  left.appendChild(el('p','psub','Estas funciones todavía no están listas.'));
+  const ul=el('ul','plan'); w.plan.forEach(([t,d])=>{ const li=el('li'); li.style.setProperty('--pc',p.c); const x=el('div'); x.appendChild(el('b',null,t)); x.appendChild(el('span',null,d)); li.appendChild(x); ul.appendChild(li); });
+  left.appendChild(ul); g.appendChild(left);
+  const right=el('section','panel');
+  right.appendChild(el('h3','ptitle','Ya puedes usar'));
+  right.appendChild(el('p','psub',id==='specials'?(S.songs.length?'Tus canciones especiales: tócalas desde aquí.':'Todavía no tienes canciones especiales.'):'Atajos a lo que ya funciona.'));
+  const ac=el('div','acts2');
+  w.acts().forEach(a=>{
+    if(a.song){ const sg=a.song, r=el('div','songrow'); const d=el('div'); d.appendChild(el('b',null,sg.name)); d.appendChild(el('small',null,sg.bpm+' BPM · '+sg.parts.length+(sg.parts.length===1?' parte':' partes')));
+      const b=el('button',null,mode==='song'&&S.playSong===sg.id?'↺ Desde el inicio':'▶ Tocar'); b.onclick=()=>{ playSongNow(sg.id); renderWip('specials'); };
+      r.appendChild(d); r.appendChild(b); ac.appendChild(r); return; }
+    const [t,d,fn,cls]=a; const b=el('button',cls||null); b.appendChild(el('span',null,t)); b.appendChild(el('small',null,d)); b.onclick=fn; ac.appendChild(b); });
+  right.appendChild(ac); g.appendChild(right); box.appendChild(g);
+}
+
+// ---------- CHECK ----------
+const CHK_KEY='dmxCheckNoche';
+const CHK_DEFAULT=['Pro DMX abierto en la pestaña del show','Todas las escenas apagadas en Pro DMX','loopMIDI corriendo','CDJs enlazados y ShowKontrol leyendo el master','Máquina de humo con líquido y caliente','Láser: zona del público revisada','Cables DMX y de corriente firmes','Prueba rápida de strobo y blinder'];
+let CHK={items:CHK_DEFAULT.map(t=>({t,d:false}))};
+try{ const c=JSON.parse(localStorage.getItem(CHK_KEY)||'null'); if(c&&Array.isArray(c.items)) CHK=c; }catch(e){}
+const saveChk=()=>{ try{ localStorage.setItem(CHK_KEY,JSON.stringify(CHK)); }catch(e){} };
+function sysChecks(){
+  const R=[];
+  R.push(!navigator.requestMIDIAccess?{s:'bad',t:'MIDI',d:'Esta ventana no tiene MIDI.'}:!midi?{s:'bad',t:'MIDI',d:'Sin permiso de MIDI. Cierra y vuelve a abrir la app.'}:{s:'ok',t:'MIDI',d:'Listo'});
+  R.push(out?{s:'ok',t:'Salida a Pro DMX',d:out.name}:{s:'bad',t:'Salida a Pro DMX',d:'Elige el puerto de loopMIDI.',a:['Elegir puerto',()=>go('ajustes')]});
+  R.push(loopWarn?{s:'bad',t:'APC mini',d:loopWarn,a:['Revisar',()=>go('ajustes')]}:thru?{s:'ok',t:'APC mini',d:thru.name+' · pasa por la app'}:{s:'opt',t:'APC mini',d:'Opcional · conectado directo a Pro DMX'});
+  R.push(ext?(inp?{s:'ok',t:'Clock de Beat Link',d:inp.name}:{s:'bad',t:'Clock de Beat Link',d:'"Seguir clock externo" está activo pero no hay puerto.',a:['Elegir',()=>go('ajustes')]}):{s:'opt',t:'Clock de Beat Link',d:'Reloj interno de la app'});
+  R.push(SK.timer&&SK.ok?{s:'ok',t:'ShowKontrol',d:SK.master?'Master: deck '+SK.master.n+(SK.master.title?' · '+SK.master.title:''):'Conectado · sin deck master'}:SK.timer?{s:'warn',t:'ShowKontrol',d:SK.lastErr||'Conectando…',a:['Revisar',()=>go('skPanel')]}:{s:'opt',t:'ShowKontrol',d:'Sin conectar',a:['Conectar',()=>go('skPanel')]});
+  const pend=S.cat.filter(c=>c.pending).length;
+  R.push(pend?{s:'warn',t:'Escenas',d:S.cat.length+' escenas · '+pend+' sin MIDI en Pro DMX',a:['Ver escenas',()=>go('catPanel')]}:{s:'ok',t:'Escenas',d:S.cat.length+' escenas con MIDI'});
+  R.push(S.std.on?{s:'ok',t:'Señal estándar',d:'Canal '+S.std.ch+' · notas '+SECS.map(k=>S.std.notes[k]).join(', ')}:{s:'opt',t:'Señal estándar',d:'Apagada'});
+  return R;
+}
+let sweep={run:false,i:0,list:[],t:null};
+function sweepStop(){ sweep.run=false; clearTimeout(sweep.t); paintSweep(); }
+function sweepStep(){
+  if(!sweep.run) return;
+  if(sweep.i>=sweep.list.length){ sweep.run=false; paintSweep('Listo: '+sweep.list.length+' escenas probadas.'); return; }
+  const c=sweep.list[sweep.i];
+  c.mode==='toggle'?tap1(c,performance.now()):on(c,performance.now()); paintSweep();
+  sweep.t=setTimeout(()=>{ c.mode==='toggle'?tap1(c,performance.now()):off(c,performance.now()); sweep.i++; sweep.t=setTimeout(sweepStep,250); },900);
+}
+function paintSweep(msg){
+  const b=$('swBtn'); if(!b) return;
+  const n=sweep.list.length, cur=sweep.list[sweep.i];
+  b.textContent=sweep.run?'Detener prueba':'Probar escenas una por una';
+  b.disabled=!sweep.run&&(playing||!out);
+  $('swBar').style.width=(n?sweep.i/n*100:0)+'%';
+  if(msg){ $('swNow').textContent=msg; sweep.msg=msg; return; }
+  $('swNow').textContent=sweep.run&&cur?(sweep.i+1)+' de '+n+' · '+cur.name+' · canal '+cur.ch+' nota '+cur.note:(playing?'Detén el show para probar.':!out?'Primero elige la salida a Pro DMX.':(sweep.msg||'Prende y apaga cada escena con MIDI, una por una (≈1 s cada una).'));
+}
+function paintChecks(){
+  const box=$('chkSys'); if(!box) return;
+  const R=sysChecks(); box.innerHTML='';
+  R.forEach(r=>{ const row=el('div','chk-row s-'+r.s); row.appendChild(el('i')); const d=el('div'); d.appendChild(el('b',null,r.t)); d.appendChild(el('span',null,r.d)); row.appendChild(d);
+    if(r.a){ const b=el('button',null,r.a[0]); b.onclick=r.a[1]; row.appendChild(b); } else row.appendChild(el('span'));
+    box.appendChild(row); });
+  const sysBad=R.filter(r=>r.s==='bad').length, sysWarn=R.filter(r=>r.s==='warn').length, man=CHK.items.filter(x=>!x.d).length;
+  const rd=$('chkReady'), ok=!sysBad&&!man, n=sysBad+man;
+  rd.classList.toggle('ok',ok);
+  rd.querySelector('strong').textContent=ok?'Todo listo para abrir':n+(n===1?' cosa pendiente':' cosas pendientes');
+  rd.querySelector('p').textContent=(sysBad?sysBad+' del sistema':'Sistema listo')+(sysWarn?' · '+sysWarn+' aviso'+(sysWarn>1?'s':''):'')+' · '+(CHK.items.length-man)+' de '+CHK.items.length+' en la lista de la noche';
+  paintSweep();
+}
+function renderList(){
+  const box=$('chkList'); if(!box) return; box.innerHTML='';
+  CHK.items.forEach((it,i)=>{ const li=el('div','li'+(it.d?' done':''));
+    const lb=el('label'); const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=it.d; cb.onchange=()=>{ it.d=cb.checked; saveChk(); renderList(); paintChecks(); };
+    lb.appendChild(cb); lb.appendChild(el('span',null,it.t)); li.appendChild(lb);
+    const x=el('button','x','×'); x.title='Quitar de la lista'; x.setAttribute('aria-label','Quitar '+it.t); x.onclick=()=>{ CHK.items.splice(i,1); saveChk(); renderList(); paintChecks(); }; li.appendChild(x);
+    box.appendChild(li); });
+}
+function renderCheck(){
+  const box=$('scr-check'); box.innerHTML='';
+  box.appendChild(phaseHead('check','Check','antes de abrir','Revisa que todo responda antes de que entre la gente.',false));
+  const rd=el('div','ready'); rd.id='chkReady'; const t=el('div'); t.appendChild(el('strong')); t.appendChild(el('p')); rd.appendChild(t);
+  const rr=el('div','row'); const nn=el('button',null,'Nueva noche'); nn.title='Desmarca toda la lista para empezar otra noche';
+  nn.onclick=()=>{ CHK.items.forEach(x=>x.d=false); saveChk(); renderList(); paintChecks(); }; rr.appendChild(nn);
+  const pa=el('button',null,'Apagar todo'); pa.onclick=()=>panic(); rr.appendChild(pa); rd.appendChild(rr); box.appendChild(rd);
+  const g=el('div','pgrid');
+  const L=el('section','panel'); L.appendChild(el('h3','ptitle','Sistema'));
+  L.appendChild(el('p','psub','Se revisa solo. Verde: listo · naranja: aviso · rojo: falta · vacío: opcional.'));
+  const sys=el('div','chk'); sys.id='chkSys'; L.appendChild(sys);
+  const sw=el('div','sweep'); const sb=el('button'); sb.id='swBtn'; sb.onclick=()=>{ if(sweep.run){ sweepStop(); return; } sweep={run:true,i:0,list:S.cat.filter(c=>!c.pending),t:null}; sweepStep(); };
+  const bar=el('div','bar'); const bi=el('i'); bi.id='swBar'; bar.appendChild(bi);
+  const nw=el('div','now'); nw.id='swNow'; sw.appendChild(sb); sw.appendChild(bar); sw.appendChild(nw); L.appendChild(sw);
+  g.appendChild(L);
+  const Rp=el('section','panel'); Rp.appendChild(el('h3','ptitle','Lista de la noche'));
+  Rp.appendChild(el('p','psub','Lo que se revisa a mano en la cabina y el escenario.'));
+  const ls=el('div','list'); ls.id='chkList'; Rp.appendChild(ls);
+  const ad=el('form','addli'); const inp2=document.createElement('input'); inp2.type='text'; inp2.placeholder='Agregar algo a revisar'; inp2.setAttribute('aria-label','Agregar algo a revisar');
+  const ab=el('button',null,'Agregar'); ab.type='submit'; ad.appendChild(inp2); ad.appendChild(ab);
+  ad.onsubmit=e=>{ e.preventDefault(); const v=inp2.value.trim(); if(!v) return; CHK.items.push({t:v,d:false}); inp2.value=''; saveChk(); renderList(); paintChecks(); };
+  Rp.appendChild(ad); g.appendChild(Rp); box.appendChild(g);
+  renderList(); paintChecks();
+}
+setInterval(()=>{ if(screen==='check') paintChecks(); },1000);
+
+const RENDER={check:renderCheck,warm:()=>renderWip('warm'),open:()=>renderWip('open'),specials:()=>renderWip('specials'),pre:()=>renderWip('pre'),final:()=>renderWip('final')};
 renderOverview(); setBpm(S.bpm); renderSecs(); renderEditor(); renderCat(); renderSongs(); renderStd(); paint(-1,[],0,live);
+showScreen(screen);
 })();
 </script>
 </body>
