@@ -24,6 +24,23 @@ button{font:inherit;color:inherit;border:0;background:var(--card2);border-radius
 .top small{color:var(--muted);font-family:var(--mono);font-size:12px}
 .top button{padding:10px 14px;font-weight:700}
 #play.on{background:var(--green);color:#04120a}
+.phsel{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;padding:6px 6px 6px 14px;margin-bottom:12px;border-left:4px solid var(--pc,var(--green))}
+.phsel span{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.phsel select,.wsel select{flex:1;font:inherit;font-weight:700;font-size:16px;color:var(--ink);background:var(--card2);border:0;border-radius:10px;padding:10px 12px;-webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;background-size:6px 6px;background-repeat:no-repeat}
+.wcard{background:var(--card);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.wsel{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.wsel select{font-size:15px;letter-spacing:0;text-transform:none}
+.wbtn{padding:20px;font-size:17px;font-weight:800;background:#123a24;color:#bff5d6}
+.wbtn.on{background:var(--green);color:#04120a}
+.wbtn:disabled{opacity:.4}
+#wHint{color:var(--muted);font-size:12.5px;min-height:15px}
+.chk{display:flex;flex-direction:column;gap:6px}
+.chk div{background:var(--card);border-radius:12px;padding:10px 12px;border-left:4px solid var(--muted)}
+.chk div.ok{border-color:var(--green)} .chk div.bad{border-color:var(--red)} .chk div.warn{border-color:var(--build)}
+.chk b{display:block;font-size:14px} .chk small{color:var(--muted);font-size:12.5px}
+.pnote{background:var(--card);border-radius:14px;padding:12px 14px;font-size:13px;color:var(--muted);line-height:1.4}
+.pnote b{color:var(--ink);display:block;font-size:16px;margin-bottom:2px}
 .now{background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:12px}
 .nh{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
 .now b{display:block;font-size:18px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -74,6 +91,8 @@ button{font:inherit;color:inherit;border:0;background:var(--card2);border-radius
   <button id="tap">TAP</button>
   <button id="play">▶</button>
 </div>
+<label class="phsel" id="phBox"><span>Fase</span><select id="phase"></select></label>
+<div id="v-main">
 <div class="now" id="now">
   <div class="nh"><span id="nDeck">SHOWKONTROL</span><span id="nBpm"></span></div>
   <b id="nTitle">—</b>
@@ -90,6 +109,26 @@ button{font:inherit;color:inherit;border:0;background:var(--card2);border-radius
 <div class="bottom">
   <button id="next">Siguiente sección ▸</button>
   <button id="panic"><i id="panicBar"></i>Apagar todo (mantener)</button>
+</div>
+</div>
+<div id="v-warm" hidden>
+  <div class="wcard" id="wCard">
+    <div class="nh"><span id="wHour"></span><span id="wState"></span></div>
+    <label class="wsel">Escena de Warm up<select id="wScene"></select></label>
+    <button class="wbtn" id="wBtn">▶ Prender WARM UP</button>
+    <small id="wHint"></small>
+  </div>
+  <div class="h">Escenas de la pestaña</div>
+  <div class="grid" id="wGrid"></div>
+</div>
+<div id="v-check" hidden>
+  <div class="h">Estado del sistema</div>
+  <div class="chk" id="chkList"></div>
+</div>
+<div id="v-page" hidden>
+  <div class="pnote" id="pNote"></div>
+  <div class="h">Escenas de la pestaña</div>
+  <div class="grid" id="pGrid"></div>
 </div>
 <div class="off" id="off">Sin conexión con la PC. Revisa que estés en la misma WiFi y que "Control desde el celular" siga activo.</div>
 <script>
@@ -126,14 +165,65 @@ function build(){
   const tb=$('tabs'); tb.innerHTML='';
   cats.forEach(c=>{ const b=el('button',c===tab?'on':null,(st.cats&&st.cats[c])||c); b.onclick=()=>{ tab=c; build(); paint(); }; tb.appendChild(b); });
   const g=$('grid'); g.innerHTML='';
-  const list=(st.scenes||[]).filter(s=>s.cat===tab);
+  const list=mainScenes().filter(s=>s.cat===tab);
   if(!list.length) g.appendChild(el('div','empty','Importa tu proyecto de Pro DMX en la app para ver tus escenas.'));
-  list.forEach(s=>{ const b=el('button','sc'+(s.flash?' flash':'')+(s.pend?' pend':''),s.n.replace(/^\s*[A-Za-z]{2,3}\s*\|\s*/,'')); b.dataset.n=s.n;
-    const down=e=>{ e.preventDefault(); if(s.flash) b.classList.add('lit'); else b.classList.toggle('lit'); cmd({t:'scene',n:s.n,down:true}); };
-    const up=e=>{ e.preventDefault(); if(s.flash){ b.classList.remove('lit'); cmd({t:'scene',n:s.n,down:false}); } };
-    b.addEventListener('pointerdown',down); b.addEventListener('pointerup',up); b.addEventListener('pointercancel',up); b.addEventListener('contextmenu',e=>e.preventDefault());
-    g.appendChild(b); });
+  list.forEach(s=>g.appendChild(sceneBtn(s)));
+  buildPhases(); buildView();
 }
+// escenas de MAIN SHOW (si el proyecto tiene esa pestaña; si no, todas)
+function mainScenes(){ const all=st.scenes||[], m=all.filter(s=>/main/i.test(s.page||'')); return m.length?m:all; }
+function sceneBtn(s){
+  const b=el('button','sc'+(s.flash?' flash':'')+(s.pend?' pend':''),s.n.replace(/^\s*[A-Za-z]{2,3}\s*\|\s*/,'').replace(/\s*\([^)]*\)\s*$/,'')); b.dataset.n=s.n;
+  const down=e=>{ e.preventDefault(); if(s.flash) b.classList.add('lit'); else b.classList.toggle('lit'); cmd({t:'scene',n:s.n,down:true}); };
+  const up=e=>{ e.preventDefault(); if(s.flash){ b.classList.remove('lit'); cmd({t:'scene',n:s.n,down:false}); } };
+  b.addEventListener('pointerdown',down); b.addEventListener('pointerup',up); b.addEventListener('pointercancel',up); b.addEventListener('contextmenu',e=>e.preventDefault());
+  return b;
+}
+// ----- fases de la noche (menú desplegable) -----
+const PAGE_RX={check:/check/i,warm:/warm/i,open:/open/i,main:/main/i,specials:/special/i,pre:/pre\s*clos|closing/i,final:/final|clos/i};
+const PH_NOTE={open:'Arranque de la noche: del ambiente al primer golpe fuerte.',specials:'Cumpleaños, botellas, anuncios o una canción especial.',pre:'La recta final: la energía baja poco a poco.',final:'Cierre: salida segura y todo apagado en orden.'};
+let phase='main'; try{ phase=localStorage.getItem('dmxRemoteFase')||'main'; }catch(e){}
+let phKey='';
+function buildPhases(){
+  const ps=st.phases||[], key=ps.map(p=>p.id).join(); if(!ps.length||key===phKey) return; phKey=key;
+  const s=$('phase'); s.innerHTML=''; ps.forEach(p=>s.add(new Option(p.name+' · '+p.sub,p.id)));
+  if(!ps.some(p=>p.id===phase)) phase='main';
+  s.value=phase;
+}
+$('phase').onchange=e=>{ phase=e.target.value; try{ localStorage.setItem('dmxRemoteFase',phase); }catch(_){} buildView(); paint(); window.scrollTo(0,0); };
+function pageScenes(id){ const rx=PAGE_RX[id]; return rx?(st.scenes||[]).filter(s=>rx.test(s.page||'')):[]; }
+function buildView(){
+  const p=(st.phases||[]).find(x=>x.id===phase); $('phBox').style.setProperty('--pc',p?p.c:'var(--green)');
+  const v=phase==='main'?'main':phase==='warm'?'warm':phase==='check'?'check':'page';
+  ['main','warm','check','page'].forEach(x=>{ $('v-'+x).hidden=x!==v; });
+  if(v==='warm'){
+    const sel=$('wScene'); sel.innerHTML=''; sel.add(new Option('— elige una escena —',''));
+    const ws=pageScenes('warm'), rest=(st.scenes||[]).filter(s=>!ws.includes(s));
+    const og=(lbl,l)=>{ if(!l.length) return; const g=document.createElement('optgroup'); g.label=lbl; l.forEach(s=>g.appendChild(new Option(s.n,s.n))); sel.appendChild(g); };
+    og('Pestaña WARM UP',ws); og('Otras escenas',rest);
+    const g=$('wGrid'); g.innerHTML=''; if(!ws.length) g.appendChild(el('div','empty','Tu proyecto no tiene pestaña WARM UP.')); ws.forEach(s=>g.appendChild(sceneBtn(s)));
+  }
+  if(v==='page'){
+    const n=$('pNote'); n.innerHTML=''; n.appendChild(el('b',null,p?p.name:'')); n.appendChild(document.createTextNode((PH_NOTE[phase]||'')+' En la PC esta pantalla aún está en desarrollo; aquí tienes las escenas de su pestaña.'));
+    const g=$('pGrid'); g.innerHTML=''; const l=pageScenes(phase);
+    if(!l.length) g.appendChild(el('div','empty','Esta pestaña no tiene escenas en tu proyecto.')); l.forEach(s=>g.appendChild(sceneBtn(s)));
+  }
+}
+function paintNight(){
+  const w=st.warm;
+  if(phase==='warm'&&w){
+    $('wHour').textContent='SUGERIDO '+w.from+' – '+w.to; $('wState').textContent=w.on?'PRENDIDO':w.open?'EN HORARIO':'FUERA DE HORARIO';
+    const sel=$('wScene'); if(document.activeElement!==sel) sel.value=w.on||w.scene||''; sel.disabled=!!w.on;
+    const b=$('wBtn'); b.textContent=w.on?'■ Apagar WARM UP':'▶ Prender WARM UP'; b.classList.toggle('on',!!w.on); b.disabled=!w.on&&!w.scene;
+    $('wHint').textContent=w.on?w.on:!w.scene?'Primero elige la escena de Warm up.':w.open?'':'Fuera del horario sugerido. Igual lo puedes prender.';
+  }
+  if(phase==='check'){
+    const c=$('chkList'), html=JSON.stringify(st.checks||[]); if(c.dataset.h===html) return; c.dataset.h=html; c.innerHTML='';
+    (st.checks||[]).forEach(r=>{ const d=el('div',r.s); d.appendChild(el('b',null,(r.s==='ok'?'✓ ':r.s==='bad'?'✕ ':'· ')+r.t)); d.appendChild(el('small',null,r.d||'')); c.appendChild(d); });
+  }
+}
+$('wBtn').onclick=()=>{ const w=st&&st.warm; if(!w) return; cmd({t:'warm',on:!w.on}); };
+$('wScene').onchange=e=>cmd({t:'warmScene',n:e.target.value});
 function fader(f){
   const k=f.ch+':'+f.cc, box=el('div','fd'); box.dataset.k=k;
   box.appendChild(el('div','lbl',f.label)); box.appendChild(el('div','cc','CC '+f.cc+' · canal '+f.ch));
@@ -157,7 +247,7 @@ function show(box,val,man){
 // ----- pintar estado en vivo -----
 function paint(){
   if(!st) return;
-  paintSk();
+  paintSk(); paintNight(); buildPhases();
   const lbl=(st.secs||[]).find(s=>s.k===st.live);
   $('sec').textContent=lbl?lbl.label:'DMX Remote';
   $('info').textContent=(st.playing?'▶ corriendo':'■ detenido')+' · '+st.bpm+' BPM';

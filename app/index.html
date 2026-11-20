@@ -2264,8 +2264,16 @@ function rmSk(){
     sec:structToSec(f['struct.current']),
     segs:SP.on&&SP.segs?SP.segs.map(x=>({s:Math.round(x.s),e:Math.round(x.e),l:x.label,k:x.sec})):[] };
 }
+// fases de la noche para el menú del celular (Warm up con su botón, Check con el estado del sistema)
+function rmNight(){
+  try{
+    return { phases:PHASES.map(p=>({id:p.id,name:p.name,sub:p.sub,c:p.c})),
+      warm:{scene:S.warm.scene||'',on:warmOn||'',open:warmOpen(),from:hhmm(WARM_FROM),to:hhmm(WARM_TO)},
+      checks:sysChecks().map(r=>({s:r.s,t:r.t,d:r.d})) };
+  }catch(e){ return {}; }
+}
 function rmState(){
-  return { live, playing, bpm:S.bpm, lit:[...lit], sk:rmSk(),
+  return { live, playing, bpm:S.bpm, lit:[...lit], sk:rmSk(), ...rmNight(),
     secs:SECS.map(k=>({k,label:SLABEL[k]})),
     cats:CATS,
     scenes:S.cat.map(c=>({n:c.name,cat:c.cat,page:c.page,flash:c.mode==='flash',pend:!!c.pending})),
@@ -2286,6 +2294,8 @@ function rmCmd(m){
   else if(m.t==='play'){ if(!ext){ playing?stop():start(); } }
   else if(m.t==='tap') tapTempo();
   else if(m.t==='panic') panic();
+  else if(m.t==='warm'){ warmSet(!!m.on); }
+  else if(m.t==='warmScene'){ if(!warmOn&&(!m.n||sc(m.n))){ S.warm.scene=m.n||''; save(); if(screen==='warm') renderWarm(); } }
   rmPush();
 }
 function rmStart(){
