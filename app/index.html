@@ -798,7 +798,7 @@ details.panel>summary::-webkit-details-marker{display:none}
       </div>
       <div class="verbox">
         <span class="lbl">Archivo de Pro DMX</span>
-        <div class="vers"><button data-ver="orig">Original</button><button data-ver="v2">V2 Open Format</button><button data-ver="import" id="verImport" hidden>Mi archivo</button></div>
+
         <button id="pdImport" class="hwbtn acc" style="margin-top:4px">Importar mi archivo de Pro DMX (.cq3 / .cq5)</button>
         <input type="file" id="pdFile" accept=".cq3,.cq5,.cq4,.cq2,.xml" hidden>
         <label class="check" style="font-size:12px"><input type="checkbox" id="pdSections" checked> Usar las etiquetas de los nombres para armar las secciones</label>
@@ -895,30 +895,7 @@ const SLABEL={intro:'Intro',build:'Build',drop:'Drop',break:'Break'};
 const CATS={color:'Color',mov:'Movimiento',shape:'Formas',pos:'Posiciones',wave:'Ondas',dim:'Intensidad',spots:'Spots',bars:'Barras',laser:'Láser',wash:'Wash',strobe:'Strobe / golpes',hit:'Impacto',fx:'Efectos de haz',combo:'Combos',amb:'Ambientes',base:'Base y solos'};
 const E='................';
 
-// Escenas leídas de PRO_DMX_MODEL_1.cq3 (canal 1 = APC mini mk2). Las "p" están por asignar en canal 2.
 const C=(name,cat,mode,ch,note,extra)=>Object.assign({name,cat,mode,ch,note,pending:false,page:'SATELITE FULL'},extra||{});
-const DEFAULT_CAT=[
-  C('B| CYAN','color','toggle',1,32), C('B| PINK','color','toggle',1,24), C('B | GREEN','color','toggle',1,16),
-  C('B|BLUE','color','toggle',1,8), C('B| YELLOW','color','toggle',1,0),
-  C('B|RED','color','toggle',2,43,{pending:true}), C('B|WHITE','color','toggle',2,44,{pending:true}),
-  C('DROP MAIN','mov','toggle',1,41), C('POS','mov','toggle',1,15), C('elicoptero','mov','toggle',1,62),
-  C('SPIRAL 50','mov','toggle',2,36,{pending:true}),
-  C('CHAOS','mov','toggle',2,37,{pending:true}), C('beam serie','mov','toggle',2,38,{pending:true}),
-  C('corrida','mov','toggle',2,39,{pending:true}), C('tilt drop','mov','toggle',2,42,{pending:true}),
-  C('W CIRCLE','mov','toggle',2,45,{pending:true}),
-  C('LAZER','laser','toggle',1,21), C('LZR WALL','laser','toggle',1,23),
-  C('LZR 1X1','laser','toggle',2,41,{pending:true}), C('lazer up','laser','flash',2,49,{pending:true}),
-  C('wall ud','laser','flash',2,50,{pending:true}), C('SHUTER LZR','laser','flash',1,36,{page:'WOOPS'}),
-  C('AMBIENT','wash','toggle',1,14), C('WARM','wash','toggle',1,27),
-  C('WASH STOP','wash','flash',1,4), C('WASH BACK','wash','flash',1,29), C('WASH MID','wash','flash',1,30),
-  C('WASH FRONT','wash','flash',1,31), C('W| LEFT','wash','flash',1,105), C('W| RIGHT','wash','flash',1,106),
-  C('RED WASH','wash','flash',1,12), C('BLUE WASH','wash','flash',1,20),
-  C('STROBE','strobe','flash',1,100,{note2:'al soltar dispara KILL BEAMS'}), C('FAST SHUTTER','strobe','flash',1,112),
-  C('OPEN BEAMS','strobe','flash',1,118), C('SHUTTER','strobe','toggle',1,103), C('LARGE STROBE','strobe','toggle',1,101),
-  C('SMOKE','fx','flash',1,114,{page:'INNERBLOOM'}), C('MELO','fx','flash',1,107,{page:'INNERBLOOM'}),
-  C('UP','fx','flash',1,115,{page:'INNERBLOOM'}), C('rights','mov','flash',1,6,{page:'INNERBLOOM'}), C('RAY TRACING','fx','toggle',2,40,{pending:true}),
-  C('gobo','fx','toggle',2,46,{pending:true}), C('DIMMER SERIE','fx','toggle',2,47,{pending:true})
-];
 
 const GENRES={
   house:{name:'House',bpm:124,k:'x...x...x...x...',s:'....x.......x...',strobe:'x...............',dropMov:['elicoptero','LZR WALL'],dropColors:['B| CYAN','B| PINK','B | GREEN','B| YELLOW']},
@@ -929,138 +906,21 @@ const GENRES={
   hiphop:{name:'Hip-Hop',bpm:92,k:'x......x..x.....',s:'....x.......x...',strobe:'....x.......x...',dropMov:['POS','LAZER'],dropColors:['B| YELLOW','B|RED','B| PINK']},
   dnb:{name:'Drum & Bass',bpm:174,k:'x.........x.....',s:'....x.......x...',strobe:'....x.......x...',dropMov:['SPIRAL 50','LZR WALL'],dropColors:['B|BLUE','B| CYAN','B | GREEN']}
 };
-const HIT_ROWS=['STROBE','OPEN BEAMS','W| LEFT','W| RIGHT'];
-// Show v2 (PRO_DMX_V2_OPEN_FORMAT.cq3): escenas nuevas, notas en la cuadrícula del APC mini mk2
-const DEFAULT_CAT_V2=[
-  C("COLOR ROJO",'color','toggle',1,56,{page:'OPEN FORMAT V2'}),
-  C("COLOR NARANJA",'color','toggle',1,57,{page:'OPEN FORMAT V2'}),
-  C("COLOR AMARILLO",'color','toggle',1,58,{page:'OPEN FORMAT V2'}),
-  C("COLOR VERDE",'color','toggle',1,59,{page:'OPEN FORMAT V2'}),
-  C("COLOR CIAN",'color','toggle',1,60,{page:'OPEN FORMAT V2'}),
-  C("COLOR AZUL",'color','toggle',1,61,{page:'OPEN FORMAT V2'}),
-  C("COLOR MAGENTA",'color','toggle',1,62,{page:'OPEN FORMAT V2'}),
-  C("COLOR BLANCO",'color','toggle',1,63,{page:'OPEN FORMAT V2'}),
-  C("CIRCULO UNISONO",'shape','toggle',1,48,{page:'OPEN FORMAT V2'}),
-  C("CIRCULO OLA",'shape','toggle',1,49,{page:'OPEN FORMAT V2'}),
-  C("CIRCULO ESPEJO",'shape','toggle',1,50,{page:'OPEN FORMAT V2'}),
-  C("OCHO",'shape','toggle',1,51,{page:'OPEN FORMAT V2'}),
-  C("BARRIDO HORIZONTAL",'shape','toggle',1,52,{page:'OPEN FORMAT V2'}),
-  C("BARRIDO OLA",'shape','toggle',1,53,{page:'OPEN FORMAT V2'}),
-  C("CUADRADO",'shape','toggle',1,54,{page:'OPEN FORMAT V2'}),
-  C("GRAN CIRCULO",'shape','toggle',1,55,{page:'OPEN FORMAT V2'}),
-  C("POS ESCENARIO",'pos','toggle',1,40,{page:'OPEN FORMAT V2'}),
-  C("POS SERIE",'pos','toggle',1,41,{page:'OPEN FORMAT V2'}),
-  C("POS PASILLO",'pos','toggle',1,42,{page:'OPEN FORMAT V2'}),
-  C("POS LATERALES",'pos','toggle',1,43,{page:'OPEN FORMAT V2'}),
-  C("POS CERO",'pos','toggle',1,44,{page:'OPEN FORMAT V2'}),
-  C("POS PARALELO",'pos','toggle',1,45,{page:'OPEN FORMAT V2'}),
-  C("POS CRUCE A/B",'pos','toggle',1,46,{page:'OPEN FORMAT V2'}),
-  C("POS DIVIDIDO",'pos','toggle',1,47,{page:'OPEN FORMAT V2'}),
-  C("TILT RESPIRA",'wave','toggle',1,32,{page:'OPEN FORMAT V2'}),
-  C("TILT OLA",'wave','toggle',1,33,{page:'OPEN FORMAT V2'}),
-  C("TILT ESPEJO",'wave','toggle',1,34,{page:'OPEN FORMAT V2'}),
-  C("PAN OLA",'wave','toggle',1,35,{page:'OPEN FORMAT V2'}),
-  C("PAN UNISONO",'wave','toggle',1,36,{page:'OPEN FORMAT V2'}),
-  C("OCHO OLA",'wave','toggle',1,37,{page:'OPEN FORMAT V2'}),
-  C("CAIDA CASCADA",'wave','toggle',1,38,{page:'OPEN FORMAT V2'}),
-  C("DERIVA LENTA",'wave','toggle',1,39,{page:'OPEN FORMAT V2'}),
-  C("LUZ RESPIRA",'dim','toggle',1,24,{page:'OPEN FORMAT V2'}),
-  C("LUZ OLA",'dim','toggle',1,25,{page:'OPEN FORMAT V2'}),
-  C("LUZ ESPEJO",'dim','toggle',1,26,{page:'OPEN FORMAT V2'}),
-  C("LUZ PULSO",'dim','toggle',1,27,{page:'OPEN FORMAT V2'}),
-  C("LUZ PERSECUCION BEAT",'dim','toggle',1,28,{page:'OPEN FORMAT V2'}),
-  C("HAZ PRISMA",'fx','toggle',1,29,{page:'OPEN FORMAT V2'}),
-  C("HAZ PRISMA GIRA",'fx','toggle',1,30,{page:'OPEN FORMAT V2'}),
-  C("HAZ GOBO GIRA",'fx','toggle',1,31,{page:'OPEN FORMAT V2'}),
-  C("SPOTS CIRCULO",'spots','toggle',1,16,{page:'OPEN FORMAT V2'}),
-  C("SPOTS RUEDA",'spots','toggle',1,17,{page:'OPEN FORMAT V2'}),
-  C("BARRAS OLA",'bars','toggle',1,18,{page:'OPEN FORMAT V2'}),
-  C("BARRAS PANEO",'bars','toggle',1,19,{page:'OPEN FORMAT V2'}),
-  C("BARRAS ABANICO",'bars','toggle',1,20,{page:'OPEN FORMAT V2'}),
-  C("BARRAS DESTELLO",'bars','toggle',1,21,{page:'OPEN FORMAT V2'}),
-  C("WASH AZUL RESPIRA",'wash','toggle',1,22,{page:'OPEN FORMAT V2'}),
-  C("HIDRA CALIDO",'wash','toggle',1,23,{page:'OPEN FORMAT V2'}),
-  C("LASER MURO",'laser','toggle',1,8,{page:'OPEN FORMAT V2'}),
-  C("LASER OLA",'laser','toggle',1,9,{page:'OPEN FORMAT V2'}),
-  C("LASER ZOOM",'laser','toggle',1,10,{page:'OPEN FORMAT V2'}),
-  C("LASER PATRONES",'laser','toggle',1,11,{page:'OPEN FORMAT V2'}),
-  C("LASER LINEAS",'laser','toggle',1,12,{page:'OPEN FORMAT V2'}),
-  C("LASER TUNEL",'laser','toggle',1,13,{page:'OPEN FORMAT V2'}),
-  C("LASER AUTO",'laser','toggle',1,14,{page:'OPEN FORMAT V2'}),
-  C("LASER AL RITMO",'laser','toggle',1,15,{page:'OPEN FORMAT V2'}),
-  C("STROBE TOTAL",'hit','flash',1,0,{page:'OPEN FORMAT V2'}),
-  C("BLINDER",'hit','flash',1,1,{page:'OPEN FORMAT V2'}),
-  C("BLINDER STROBE",'hit','flash',1,2,{page:'OPEN FORMAT V2'}),
-  C("FLASH BLANCO",'hit','flash',1,3,{page:'OPEN FORMAT V2'}),
-  C("BLACKOUT",'hit','flash',1,4,{page:'OPEN FORMAT V2'}),
-  C("HUMO",'hit','flash',1,5,{page:'OPEN FORMAT V2'}),
-  C("GOLPE ESCENARIO",'hit','flash',1,6,{page:'OPEN FORMAT V2'}),
-  C("COMBO INTRO AZUL",'combo','toggle',1,112,{page:'OPEN FORMAT V2'}),
-  C("COMBO LATINO NARANJA",'combo','toggle',1,113,{page:'OPEN FORMAT V2'}),
-  C("COMBO REGGAETON MAGENTA",'combo','toggle',1,114,{page:'OPEN FORMAT V2'}),
-  C("COMBO HIPHOP ROJO",'combo','toggle',1,115,{page:'OPEN FORMAT V2'}),
-  C("COMBO HOUSE CIAN",'combo','toggle',1,116,{page:'OPEN FORMAT V2'}),
-  C("COMBO TECHNO BLANCO",'combo','toggle',1,117,{page:'OPEN FORMAT V2'}),
-  C("COMBO POP AMARILLO",'combo','toggle',1,118,{page:'OPEN FORMAT V2'}),
-  C("COMBO CLASICOS MAGENTA",'combo','toggle',1,119,{page:'OPEN FORMAT V2'}),
-  C("BASE ENCENDIDO",'base','toggle',1,100,{page:'OPEN FORMAT V2'}),
-  C("SOLO FILA A",'base','toggle',1,101,{page:'OPEN FORMAT V2'}),
-  C("SOLO FILA B",'base','toggle',1,102,{page:'OPEN FORMAT V2'}),
-  C("SOLO COLUMNA",'base','toggle',1,103,{page:'OPEN FORMAT V2'}),
-  C("SOLO SPOTS",'base','toggle',1,104,{page:'OPEN FORMAT V2'}),
-  C("SOLO BARRAS",'base','toggle',1,105,{page:'OPEN FORMAT V2'}),
-  C("SOLO LASER",'base','toggle',1,106,{page:'OPEN FORMAT V2'}),
-  C("GOLPE PRISMA",'hit','flash',1,107,{page:'OPEN FORMAT V2'})
-];
-const HIT_ROWS_V2=['STROBE TOTAL','BLINDER','FLASH BLANCO','GOLPE PRISMA'];
-const V2_DROP={house:{mov:['CIRCULO OLA'],col:['COLOR CIAN']},
-  techhouse:{mov:['PAN OLA'],col:['COLOR AZUL']},
-  techno:{mov:['BARRIDO OLA','HAZ PRISMA'],col:['COLOR BLANCO']},
-  edm:{mov:['GRAN CIRCULO'],col:['COLOR CIAN','COLOR MAGENTA']},
-  reggaeton:{mov:['OCHO OLA'],col:['COLOR MAGENTA']},
-  hiphop:{mov:['TILT ESPEJO'],col:['COLOR ROJO']},
-  dnb:{mov:['CIRCULO ESPEJO'],col:['COLOR VERDE']}};
-function genreShowV2(g,key){
-  const d=V2_DROP[key]||V2_DROP.house;
-  return {
-    intro:{fixed:['BASE ENCENDIDO','TILT RESPIRA'],colors:['COLOR AZUL'],every:16,hits:[E,E,E,E].map(p)},
-    build:{fixed:['BASE ENCENDIDO','TILT OLA','LUZ OLA','BARRAS OLA','LASER ZOOM'],colors:['COLOR MAGENTA'],every:8,hits:['........x.x.xxxx',E,E,E].map(p)},
-    drop:{fixed:['BASE ENCENDIDO','BARRAS DESTELLO','LASER LINEAS'].concat(d.mov),colors:d.col,every:8,hits:[g.strobe,'x...............',E,E].map(p)},
-    break:{fixed:['BASE ENCENDIDO','POS PASILLO','HIDRA CALIDO','LUZ RESPIRA'],colors:['COLOR AZUL'],every:16,hits:[E,E,E,E].map(p)}
-  };
-}
-const isV2=()=>S.catVersion==='v2';
 const isImp=()=>S.catVersion==='import'&&Array.isArray(S.importCat);
-function templateFor(key){ return isImp()?autoShow(S.cat,GENRES[key],S.importUseNames).show:adaptShow(isV2()?genreShowV2(GENRES[key],key):genreShow(GENRES[key]),S.cat); }
+// sin catálogo incluido: el show siempre se arma con el proyecto importado (prefijos y etiquetas)
+function templateFor(key){ return autoShow(S.cat||[],GENRES[key],S.importUseNames).show; }
 const p=s=>[...s].map(c=>c==='x');
-function genreShow(g){
-  const L=g.s.slice(0,8)+'........', R='........'+g.s.slice(8);
-  return {
-    intro:{fixed:['AMBIENT','WASH BACK'],colors:['B|BLUE','B| CYAN'],every:8,hits:[E,'x...............',E,E].map(p)},
-    build:{fixed:['POS','WASH FRONT','lazer up'],colors:['B| PINK','B|BLUE'],every:4,hits:['........x.x.xxxx',g.k,E,E].map(p)},
-    drop:{fixed:g.dropMov.concat(['WASH FRONT']),colors:g.dropColors,every:4,hits:[g.strobe,g.k,L,R].map(p)},
-    break:{fixed:['WARM','WASH MID'],colors:['B|BLUE'],every:8,hits:[E,E,E,E].map(p)}
-  };
-}
-
+const emptyShow=()=>Object.fromEntries(SECS.map(k=>[k,{fixed:[],colors:[],every:4,hits:[E,E,E,E].map(p)}]));
 // ---------- state ----------
 const KEY='cabinaMidiLuces2';
-let S={genre:'house',bpm:124,gate:0.5,cat:JSON.parse(JSON.stringify(DEFAULT_CAT)),hitRows:HIT_ROWS.slice(),
-  show:genreShow(GENRES.house),auto:false,lens:{intro:16,build:8,drop:16,break:8},outName:'',inName:'',thruName:''};
+let S={genre:'house',bpm:124,gate:0.5,cat:[],hitRows:['','','',''],catVersion:'import',importCat:[],catRev:3,
+  show:emptyShow(),auto:false,lens:{intro:16,build:8,drop:16,break:8},outName:'',inName:'',thruName:''};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.show&&s.cat)S=Object.assign(S,s);}catch(e){}
-// Catálogo 2 (SAT PRE): B| MAIN pasó a DROP MAIN, SPIRAL 25 ya no existe, se agregó "rights".
-// Se aplica una sola vez al catálogo original guardado; las notas MIDI se toman del catálogo nuevo.
-if((S.catRev||1)<2){
-  const ren=(o,from,to)=>{ if(Array.isArray(o)){ for(let i=o.length-1;i>=0;i--){ if(o[i]===from){ if(to==null) o.splice(i,1); else o[i]=to; } else ren(o[i],from,to); } }
-    else if(o&&typeof o==='object') Object.keys(o).forEach(k=>{ if(o[k]===from&&to!=null) o[k]=to; else ren(o[k],from,to); }); };
-  if(!S.catVersion||S.catVersion==='orig'){
-    [S.show,S.songs,S.hitRows].forEach(o=>{ ren(o,'B| MAIN','DROP MAIN'); ren(o,'SPIRAL 25',null); });
-    const def={}; DEFAULT_CAT.forEach(c=>def[c.name]=c);
-    S.cat=S.cat.filter(c=>c.name!=='SPIRAL 25').map(c=>{ const n=c.name==='B| MAIN'?'DROP MAIN':c.name, d=def[n];
-      return d?Object.assign({},c,{name:n,ch:d.ch,note:d.note,mode:d.mode,pending:!!d.pending,page:d.page},d.note2?{note2:d.note2}:{}):c; });
-    DEFAULT_CAT.forEach((d,i)=>{ if(!S.cat.some(c=>c.name===d.name)) S.cat.splice(Math.min(i,S.cat.length),0,JSON.parse(JSON.stringify(d))); });
-  }
-  S.catRev=2;
+// Ya no hay catálogo incluido (Original/V2): todo sale del proyecto de Pro DMX importado.
+// Lo guardado de versiones anteriores que no venga de un archivo importado se limpia una vez.
+if((S.catRev||1)<3){
+  if(S.catVersion!=='import'||!Array.isArray(S.importCat)){ S.cat=[]; S.importCat=[]; S.importName=''; S.show=emptyShow(); S.hitRows=['','','','']; }
+  S.catVersion='import'; S.catRev=3;
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 const sc=name=>S.cat.find(c=>c.name===name);
@@ -2009,8 +1869,8 @@ $('clearSec').onclick=()=>{ edObj().hits=S.hitRows.map(()=>Array(16).fill(false)
 $('addScene').onclick=()=>{ let n='Escena nueva', k=2; while(sc(n)) n='Escena nueva '+(k++);
   S.cat.push(C(n,'fx','toggle',2,60+S.cat.length%60,{pending:true})); save(); renderCat(); renderEditor(); };
 $('resetCat').onclick=()=>{ S.cat=baseCat(S.catVersion||'orig'); lit.clear(); save(); renderCat(); renderEditor(); };
-const baseCat=v=>JSON.parse(JSON.stringify(v==='import'&&Array.isArray(S.importCat)?S.importCat:v==='v2'?DEFAULT_CAT_V2:DEFAULT_CAT));
-const baseHits=v=>v==='import'?autoHits(S.cat,S.importUseNames):adaptHits((v==='v2'?HIT_ROWS_V2:HIT_ROWS).slice(),S.cat);
+const baseCat=()=>JSON.parse(JSON.stringify(Array.isArray(S.importCat)?S.importCat:[]));
+const baseHits=()=>autoHits(S.cat||[],S.importUseNames);
 // ---------- importar un proyecto de Pro DMX (.cq3/.cq5: 4 bytes de tamaño + XML comprimido con zlib) ----------
 // la escena va a una sección si su nombre EMPIEZA con ella: "DROP MAIN", "BREAK | azul", "INTRO-1"
 const SEC_RX={intro:/^\s*intro\b/i,build:/^\s*(build(up)?|subida|riser)\b/i,drop:/^\s*drop\b/i,break:/^\s*break(down)?\b/i};
@@ -2044,7 +1904,7 @@ function buildCatalog(doc){
       const steps=sc.getElementsByTagName('LPSteps')[0]; if(steps&&steps.getAttribute('LPNumber')==='0') return; // escena vacía
       const f=(sc.getAttribute('LPMidiTrigger')||'').split('|');
       const flash=sc.getAttribute('LPAutoRelease')==='1';
-      const tg=tagsOf(name), rec={name,page:pn,mode:flash?'flash':'toggle',cat:tg.has('color')?'color':guessCat(stripTags(name))};
+      const ly=layerOf(name), tg=tagsOf(name), rec={name,page:pn,mode:flash?'flash':'toggle',cat:ly||(tg.has('color')?'color':guessCat(stripTags(name)))};
       if(f[0]==='1'&&f.length>2){ rec.ch=(+f[1]||0)+1; rec.note=+f[2]; rec.onRelease=f[5]==='1'; } else rec.pending=true;
       out.push(rec);
     });
@@ -2055,17 +1915,28 @@ function buildCatalog(doc){
   // notas que disparan varias escenas: queda la de la pestaña principal (al presionar), a las demás se les avisa
   out.filter(c=>!c.pending).forEach(c=>{ const k=c.ch+':'+c.note; (byNote[k]=byNote[k]||[]).push(c); used.add(k); });
   const cat=[], seenName={}; let skipped=0;
+  // proyecto organizado por capas (prefijos MOV, COL, DIM…): se leen todas las pestañas (una por fase de la noche)
+  const layered=out.some(c=>layerOf(c.name));
   out.forEach(c=>{
-    if(c.pending&&c.page!==mainPage&&!tagsOf(c.name).size){ skipped++; return; }
+    if(!layered&&c.pending&&c.page!==mainPage&&!tagsOf(c.name).size){ skipped++; return; }
     if(!c.pending){ const k=c.ch+':'+c.note, grp=byNote[k], press=grp.filter(x=>!x.onRelease), main=press.find(x=>x.page===mainPage)||press[0]||grp[0]; if(c!==main) return;
       const others=grp.filter(x=>x!==c).map(x=>x.name+(x.onRelease?' (al soltar)':''));
       if(others.length) c.note2='la misma nota también dispara: '+others.join(', '); }
     let nm=c.name; if(seenName[nm]){ nm=c.name+' ('+c.page+')'; let i=2; while(seenName[nm]) nm=c.name+' ('+c.page+' '+(i++)+')'; } seenName[nm]=1;
-    cat.push(Object.assign(C(nm,c.cat,c.mode,c.ch||2,c.note||0,{page:c.page,pending:!!c.pending}),c.note2?{note2:c.note2}:{}));
+    cat.push(Object.assign(C(nm,c.cat,c.mode,c.ch||2,c.note||0,{page:c.page,pending:!!c.pending,layer:!!layerOf(c.name)}),c.note2?{note2:c.note2}:{}));
   });
-  // a las escenas sin MIDI les toca una nota libre del canal 2 (para asignarla en Pro DMX con Probar)
-  let n=0; cat.filter(c=>c.pending).forEach(c=>{ while(used.has('2:'+n)&&n<127) n++; c.ch=2; c.note=Math.min(127,n); used.add('2:'+n); n++; });
-  cat.mainPage=mainPage; cat.skipped=skipped;
+  if(layered){
+    // MIDI propuesto (para asignarlo en Pro DMX con "Probar"):
+    // canal = número de la pestaña (1 = la primera; máx. 15, el 16 es de la señal estándar) · nota = bloque de la capa
+    const pgs=[...new Set(pages.map(pg=>(pg.getAttribute('LPName')||'').trim()))], next={};
+    cat.filter(c=>c.pending).forEach(c=>{ const ch=Math.max(1,Math.min(15,pgs.indexOf(c.page)+1)), b=LAYER_NOTE[c.cat]!=null?LAYER_NOTE[c.cat]:LAYER_NOTE.otro;
+      let n=next[ch+':'+b]!=null?next[ch+':'+b]:b; while(used.has(ch+':'+n)&&n<127) n++;
+      c.ch=ch; c.note=Math.min(127,n); used.add(ch+':'+n); next[ch+':'+b]=n+1; });
+  } else {
+    // a las escenas sin MIDI les toca una nota libre del canal 2 (para asignarla en Pro DMX con Probar)
+    let n=0; cat.filter(c=>c.pending).forEach(c=>{ while(used.has('2:'+n)&&n<127) n++; c.ch=2; c.note=Math.min(127,n); used.add('2:'+n); n++; });
+  }
+  cat.mainPage=mainPage; cat.skipped=skipped; cat.layered=layered;
   return cat;
 }
 // ---------- programación adaptativa ----------
@@ -2075,6 +1946,11 @@ function buildCatalog(doc){
 //   sección: INTRO, BUILD, DROP, BREAK, TODO · función: COLOR (rotación de colores), GOLPE (filas de golpes)
 // Sin etiquetas: se usa el tipo que se adivina por el nombre (color, movimiento, láser, wash, strobo…).
 // Solo se usan escenas con MIDI.
+// Prefijo de capa al inicio del nombre: "MOV | DROP MAIN", "COL | CYAN", "DIM | DIMMER 1", "FX | GOBO", "LZR | WALL", "STB | STROBE"
+const LAYER={MOV:'mov',COL:'color',DIM:'dim',FX:'fx',LZR:'laser',STB:'strobe',BLK:'strobe'};
+const layerOf=n=>{ const m=/^\s*([A-Za-z]{2,3})\s*\|/.exec(String(n||'')); return (m&&LAYER[m[1].toUpperCase()])||null; };
+// bloque de notas MIDI por capa (igual en todas las pestañas): MOV 0–15 · COL 16–31 · DIM 32–39 · FX 40–55 · LZR 56–63 · STB 64–79 · otras 80+
+const LAYER_NOTE={mov:0,color:16,dim:32,fx:40,laser:56,strobe:64,otro:80};
 const TAG_RX={intro:/^intro$/,build:/^(build(up)?|subida|riser)$/,drop:/^drop$/,break:/^break(down)?$/,all:/^(todo|todas|all)$/,color:/^colou?r(es)?$/,hit:/^(golpes?|hits?)$/};
 const isTag=w=>Object.values(TAG_RX).some(r=>r.test(w.toLowerCase()));
 const stripTags=n=>{ n=String(n||'').replace(/\[[^\]]*\]/g,' '); const pre=n.split('|'); if(pre.length>1&&pre[0].trim()&&pre[0].trim().split(/[\s+\/,&]+/).every(isTag)) n=pre.slice(1).join('|'); return n.trim(); };
@@ -2088,51 +1964,50 @@ function tagsOf(name){
   return out;
 }
 // qué tipo de escena busca cada sección cuando no hay etiquetas (en orden de preferencia)
-const AUTO_SEC={intro:{want:['combo','wash'],n:2,colors:2,every:8},build:{want:['mov','laser'],n:2,colors:2,every:4},
-  drop:{want:['mov','laser','wash'],n:3,colors:4,every:4},break:{want:['combo','wash'],n:2,colors:2,every:8,rev:true}};
+const AUTO_SEC={intro:{want:['dim','combo','wash','fx','mov'],n:3,colors:2,every:8},build:{want:['dim','mov','laser'],n:3,colors:2,every:4},
+  drop:{want:['dim','mov','laser','wash','fx'],n:4,colors:4,every:4},break:{want:['dim','combo','wash','fx','mov'],n:3,colors:2,every:8}};
+// escenas que puede usar el show: en un proyecto por capas, las de la pestaña del show (MAIN SHOW) aunque aún no tengan MIDI
+function showPool(cat){ if(!cat.some(c=>c.layer)) return cat.filter(c=>!c.pending);
+  const main=cat.filter(c=>/main/i.test(c.page||'')); return main.length?main:cat; }
 function autoShow(cat,g,useTags){
   g=g||GENRES[S.genre]||GENRES.house;
-  const ok=cat.filter(c=>!c.pending).map(c=>({c,t:useTags===false?new Set():tagsOf(c.name)}));
+  const ok=showPool(cat).map(c=>({c,t:useTags===false?new Set():tagsOf(c.name)}));
   const isColor=x=>x.t.has('color')||(x.c.cat==='color'&&!x.t.has('hit'));
   // sin etiqueta: primero la pestaña principal (la que tiene más escenas con MIDI) y las que se quedan prendidas (toggle)
   const per={}; ok.forEach(x=>per[x.c.page]=(per[x.c.page]||0)+1);
   const mainPg=Object.keys(per).sort((a,b)=>per[b]-per[a])[0];
   const rank=x=>(x.c.page===mainPg?0:2)+(x.c.mode==='toggle'?0:1);
   // las que apagan o detienen (STOP, KILL, BLACK…) y las de prueba no se eligen solas; con etiqueta sí
-  const free=ok.filter(x=>!x.t.has('all')&&!SECS.some(k=>x.t.has(k))&&!x.t.has('hit')&&!/\b(STOP|KILL|BLACK\w*|OFF|TEST|PRUEBA)\b/i.test(x.c.name)).map((x,i)=>({x,i})).sort((a,b)=>rank(a.x)-rank(b.x)||a.i-b.i).map(o=>o.x);
+  const free=ok.filter(x=>!x.t.has('all')&&!SECS.some(k=>x.t.has(k))&&!x.t.has('hit')&&!/\b(STOP|KILL|BLACK\w*|OFF|TEST|PRUEBA|FOCUS)\b/i.test(x.c.name)).map((x,i)=>({x,i})).sort((a,b)=>rank(a.x)-rank(b.x)||a.i-b.i).map(o=>o.x);
   const L=g.s.slice(0,8)+'........', R='........'+g.s.slice(8);
   const H={intro:[E,'x...............',E,E],build:['........x.x.xxxx',g.k,E,E],drop:[g.strobe,g.k,L,R],break:[E,E,E,E]};
   const show={}, byTag={};
-  SECS.forEach(k=>{
+  // lo automático se reparte para que cada sección se vea distinta: el drop elige primero, luego build, intro y break.
+  // Movimiento, láser y efectos no se repiten entre secciones mientras haya opciones; la capa DIM sí se comparte.
+  const usedFix=new Set(), usedCol=new Set();
+  ['drop','build','intro','break'].forEach(k=>{
     const A=AUTO_SEC[k], mine=ok.filter(x=>x.t.has(k)||x.t.has('all'));
     let fixed=mine.filter(x=>!isColor(x)&&!x.t.has('hit')).map(x=>x.c.name);
     let colors=mine.filter(isColor).map(x=>x.c.name);
     byTag[k]=fixed.length+colors.length;
     // las etiquetas mandan; si son pocas, se completa hasta el mínimo de la sección con lo que no tiene etiqueta
     if(fixed.length<A.n){ const pool=A.rev?free.slice().reverse().sort((a,b)=>rank(a)-rank(b)):free;
-      A.want.forEach(w=>{ const x=pool.find(x=>x.c.cat===w&&!isColor(x)&&!fixed.includes(x.c.name)); if(x&&fixed.length<A.n) fixed.push(x.c.name); }); }
-    if(!colors.length){ const cp=free.filter(isColor), mc=cp.filter(x=>x.c.page===mainPg), pool=(mc.length>=A.colors?mc:cp).map(x=>x.c.name);
-      colors=(A.rev?pool.slice().reverse():pool).slice(0,A.colors); }
+      A.want.forEach(w=>{ if(fixed.length>=A.n) return;
+        const cand=pool.filter(x=>x.c.cat===w&&!isColor(x)&&!fixed.includes(x.c.name));
+        const x=cand.find(x=>w==='dim'||!usedFix.has(x.c.name))||cand[0]; if(x){ fixed.push(x.c.name); usedFix.add(x.c.name); } }); }
+    if(!colors.length){ const cp=free.filter(isColor), mc=cp.filter(x=>x.c.page===mainPg), all=(mc.length>=A.colors?mc:cp).map(x=>x.c.name);
+      const pool=A.rev?all.slice().reverse():all, fresh=pool.filter(n=>!usedCol.has(n));
+      colors=(fresh.length>=A.colors?fresh:fresh.concat(pool.filter(n=>!fresh.includes(n)))).slice(0,A.colors); colors.forEach(n=>usedCol.add(n)); }
     show[k]={fixed,colors,every:A.every,hits:H[k].map(p)};
   });
-  return {show,byTag};
+  return {show:Object.fromEntries(SECS.map(k=>[k,show[k]])),byTag};
 }
 function autoHits(cat,useTags){
-  const ok=cat.filter(c=>!c.pending);
+  const ok=showPool(cat);
   const tagged=useTags===false?[]:ok.filter(c=>tagsOf(c.name).has('hit'));
-  const pick=[...tagged,...ok.filter(c=>c.cat==='strobe'&&c.mode==='flash'),...ok.filter(c=>c.mode==='flash'),...ok].map(c=>c.name);
+  const pick=[...tagged,...ok.filter(c=>c.cat==='strobe'&&c.mode==='flash'),...ok.filter(c=>c.cat==='strobe'),...ok.filter(c=>c.mode==='flash'),...ok].map(c=>c.name);
   const r=[...new Set(pick)].slice(0,4); while(r.length<4) r.push(r[0]||''); return r;
 }
-// plantillas incluidas: si una escena no existe o no tiene MIDI en este catálogo, se cambia por otra del mismo tipo
-function playable(cat,n){ const c=cat.find(x=>x.name===n); return c&&!c.pending?c:null; }
-function swapFor(cat,n,used){ if(playable(cat,n)) return n; const c=cat.find(x=>x.name===n), k=c?c.cat:guessCat(n);
-  const r=cat.find(x=>!x.pending&&x.cat===k&&!used.has(x.name)); return r?r.name:null; }
-function adaptShow(show,cat){
-  SECS.forEach(k=>{ const s=show[k]; if(!s) return; const used=new Set([...s.fixed,...s.colors].filter(n=>playable(cat,n)));
-    ['fixed','colors'].forEach(f=>{ s[f]=s[f].map(n=>{ const r=swapFor(cat,n,used); if(r) used.add(r); return r; }).filter(Boolean); }); });
-  return show;
-}
-function adaptHits(rows,cat){ const used=new Set(rows.filter(n=>playable(cat,n))); return rows.map(n=>{ const r=swapFor(cat,n,used); if(r){ used.add(r); return r; } return n; }); }
 $('pdImport').onclick=()=>$('pdFile').click();
 $('pdFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
   $('verNote').textContent='Leyendo '+f.name+'…';
@@ -2143,7 +2018,10 @@ $('pdFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if
     setVersion('import');
     const bt=autoShow(S.cat,GENRES[S.genre],S.importUseNames).byTag;
     const sec=SECS.map(k=>SLABEL[k]+': '+(bt[k]?bt[k]+' por etiqueta':'automático')).join(' · ');
-    $('verNote').textContent='Importé '+cat.length+' escenas de '+f.name+': '+cat.filter(c=>!c.pending).length+' con MIDI y '+cat.filter(c=>c.pending).length+' por asignar de la pestaña '+cat.mainPage+(cat.skipped?' (omití '+cat.skipped+' sin MIDI de otras pestañas)':'')+'. Secciones → '+sec+'.';
+    const capas=Object.entries(cat.reduce((a,c)=>(a[c.cat]=(a[c.cat]||0)+1,a),{})).map(([k,n])=>(CATS[k]||k)+' '+n).join(' · ');
+    $('verNote').textContent=cat.layered
+      ?'Importé '+cat.length+' escenas de '+f.name+' en '+new Set(cat.map(c=>c.page)).size+' pestañas ('+capas+'): '+cat.filter(c=>!c.pending).length+' con MIDI y '+cat.filter(c=>c.pending).length+' con MIDI propuesto (canal = pestaña, nota = capa). Secciones → '+sec+'.'
+      :'Importé '+cat.length+' escenas de '+f.name+': '+cat.filter(c=>!c.pending).length+' con MIDI y '+cat.filter(c=>c.pending).length+' por asignar de la pestaña '+cat.mainPage+(cat.skipped?' (omití '+cat.skipped+' sin MIDI de otras pestañas)':'')+'. Secciones → '+sec+'.';
   }catch(err){ $('verNote').textContent='No pude leer el archivo: '+err.message; }
 };
 $('pdSections').checked=S.importUseNames!==false;
@@ -2155,11 +2033,9 @@ function setVersion(v){
   save(); renderCat(); renderEditor(); updateVersionUi(); if(playing) applySection(performance.now()+20);
 }
 function updateVersionUi(){
-  document.querySelectorAll('[data-ver]').forEach(b=>b.classList.toggle('sel',b.dataset.ver===(S.catVersion||'orig')));
-  $('verImport').hidden=!Array.isArray(S.importCat);
-  $('verNote').textContent=isImp()?('Usando '+(S.importName||'tu archivo')+': '+S.importCat.length+' escenas, '+S.importCat.filter(c=>!c.pending).length+' con MIDI.'):isV2()?'Usando PRO_DMX_V2_OPEN_FORMAT: escenas nuevas en la cuadrícula del APC (canal 1).':'Usando PRO_DMX_MODEL_1, tu show original.';
+  const n=(S.importCat||[]).length;
+  $('verNote').textContent=n?('Usando '+(S.importName||'tu archivo')+': '+n+' escenas, '+S.importCat.filter(c=>!c.pending).length+' con MIDI en Pro DMX.'):'Todavía no hay proyecto: importa tu archivo de Pro DMX para empezar.';
 }
-document.querySelectorAll('[data-ver]').forEach(b=>b.onclick=()=>{ if((S.catVersion||'orig')!==b.dataset.ver) setVersion(b.dataset.ver); });
 updateVersionUi();
 $('exportBtn').onclick=()=>{ const blob=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='show-luces-'+S.genre+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
@@ -2427,7 +2303,7 @@ function renderWarm(){
   p.appendChild(el('p','psub','La escena de tu catálogo que se prende en esta fase.'));
   const s=document.createElement('select'); s.id='warmSel'; s.setAttribute('aria-label','Escena de Warm up');
   s.add(new Option('— Elige una escena —',''));
-  const list=S.cat.filter(c=>!c.pending);
+  const list=[...S.cat.filter(c=>/warm/i.test(c.page||'')),...S.cat.filter(c=>!/warm/i.test(c.page||''))]; // primero la pestaña WARM UP
   Object.keys(CATS).forEach(k=>{ const cs=list.filter(c=>c.cat===k); if(!cs.length) return;
     const g=document.createElement('optgroup'); g.label=CATS[k]; cs.forEach(c=>g.appendChild(new Option(c.name,c.name))); s.appendChild(g); });
   list.filter(c=>!CATS[c.cat]).forEach(c=>s.add(new Option(c.name,c.name)));
