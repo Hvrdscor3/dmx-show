@@ -491,6 +491,17 @@ details.panel>summary::-webkit-details-marker{display:none}
 .ready strong{font-size:22px;letter-spacing:-.01em}
 .ready p{margin:2px 0 0;color:var(--muted);font-size:13px}
 .ready .row{gap:8px}
+.ph.locked{opacity:.5}
+.ph.lit{box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 0 2px var(--pc),0 0 16px color-mix(in srgb,var(--pc) 45%,transparent)}
+.warm-state{--rc:var(--muted)}
+.warm-state.ok{--rc:#3f9bff}
+.warm-state.lit{--rc:var(--go)}
+.warm-btn{min-width:230px;padding:16px 22px;font-size:16px;font-weight:700;letter-spacing:.04em;background:#3f9bff;border-color:#3f9bff;color:#fff;border-radius:14px}
+.warm-btn.on{background:var(--hot);border-color:var(--hot)}
+.warm-btn:disabled{opacity:.45;cursor:not-allowed}
+.warm-pick{margin-top:16px;max-width:560px}
+.warm-pick select{width:100%;font-size:15px;padding:10px 12px}
+.warm-hint{margin:10px 0 0;color:var(--hot)}
 .chk{display:flex;flex-direction:column}
 .chk-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .chk-row:first-child{border-top:0}
@@ -1192,6 +1203,7 @@ function rotateColor(t){
 }
 function allOff(t){ [...lit].forEach(n=>setScene(n,false,t)); curColor=null; queueUi(); }
 function panic(){
+  warmSet(false);
   allOff(performance.now()); stdOff(performance.now()); suiteOff();
   for(let ch=0;ch<2;ch++){ send([0xB0|ch,123,0]); }
   send([0xB0|(S.std.ch-1),123,0]);
@@ -2228,13 +2240,6 @@ const go=anchor=>showScreen('main',anchor);
 
 // pantallas en desarrollo: qué van a hacer + lo que ya sirve hoy
 const WIP={
-  warm:{title:'Warm up',sub:'puertas abiertas',desc:'La gente va llegando y la pista está vacía. Luz que acompaña sin cansar.',
-    plan:[['Ambiente de baja energía','Colores fríos que cambian lento y movimiento suave, sin strobo ni láser.'],
-          ['Límite de intensidad','Un tope de brillo para que el club no se vea vacío ni deslumbre.'],
-          ['Subida automática con la hora','La energía crece sola hasta la hora del Open show.'],
-          ['Escenas de bienvenida','Logos, gobos o luz de barra para la entrada.']],
-    acts:()=>[['Tocar la Intro en Main Show','Abre el reproductor en Intro',()=>{ go('player'); pickSection('intro'); }],
-              ['Configurar show automático','Compases por sección',()=>go('ajustes')]]},
   open:{title:'Open show',sub:'arranque',desc:'El momento en que la noche se enciende: del ambiente al primer golpe fuerte.',
     plan:[['Cuenta regresiva','Un reloj hacia la hora de apertura, visible en la cabina.'],
           ['Secuencia de apertura','Blackout, golpe de blinder y entrada de todo el rig, en un solo botón.'],
@@ -2288,6 +2293,68 @@ const CHK_DEFAULT=['Pro DMX abierto en la pestaña del show','Todas las escenas 
 let CHK={items:CHK_DEFAULT.map(t=>({t,d:false}))};
 try{ const c=JSON.parse(localStorage.getItem(CHK_KEY)||'null'); if(c&&Array.isArray(c.items)) CHK=c; }catch(e){}
 const saveChk=()=>{ try{ localStorage.setItem(CHK_KEY,JSON.stringify(CHK)); }catch(e){} };
+
+// ---------- WARM UP ----------
+// Solo se puede prender de 8:00 pm a 10:30 pm. Una sola escena, elegida por el usuario (S.warm.scene).
+// Si la escena sigue prendida al terminar el horario, NO se apaga sola (show en vivo): se puede apagar desde aquí.
+const WARM_FROM=20*60, WARM_TO=22*60+30;           // minutos desde medianoche
+S.warm=Object.assign({scene:''},S.warm||{});
+let warmOn=null;                                    // nombre de la escena prendida desde aquí (o null)
+const nowMin=()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes()+d.getSeconds()/60; };
+const warmOpen=()=>{ const m=nowMin(); return m>=WARM_FROM&&m<WARM_TO; };
+const hhmm=m=>{ m=Math.round(m)%1440; const h=Math.floor(m/60), mm=m%60; return ((h+11)%12+1)+':'+String(mm).padStart(2,'0')+(h<12?' am':' pm'); };
+const warmLeft=()=>{ const m=nowMin(), d=warmOpen()?WARM_TO-m:((WARM_FROM-m)+1440)%1440; const h=Math.floor(d/60), mm=Math.ceil(d%60); return mm===60?(h+1)+' h':(h?h+' h ':'')+mm+' min'; };
+function warmSet(want){
+  const t=performance.now();
+  if(!want){ const c=warmOn&&sc(warmOn); if(c) c.mode==='toggle'?tap1(c,t):off(c,t); warmOn=null; }
+  else { if(!warmOpen()||warmOn) return; const c=sc(S.warm.scene); if(!c) return; c.mode==='toggle'?tap1(c,t):on(c,t); warmOn=c.name; }
+  if(screen==='warm') paintWarm();
+  paintWarmRail();
+}
+function paintWarmRail(){
+  const b=$('ph_warm'); if(!b) return; const open=warmOpen();
+  b.classList.toggle('locked',!open); b.classList.toggle('lit',!!warmOn);
+  b.querySelector('small').textContent=warmOn?'Escena prendida':open?'Hasta las '+hhmm(WARM_TO):hhmm(WARM_FROM)+' – '+hhmm(WARM_TO);
+}
+function paintWarm(){
+  const st=$('warmState'); if(!st) return;
+  const open=warmOpen(), c=sc(S.warm.scene), lit=!!warmOn;
+  st.classList.toggle('ok',open); st.classList.toggle('lit',lit);
+  st.querySelector('strong').textContent=lit?'WARM UP prendido':open?'Warm up disponible':'Fuera de horario';
+  st.querySelector('p').textContent=lit?(warmOn+(open?' · el horario termina en '+warmLeft():' · el horario ya terminó, apágalo cuando quieras')):
+    open?'Termina a las '+hhmm(WARM_TO)+' (en '+warmLeft()+')':'Se habilita a las '+hhmm(WARM_FROM)+' (en '+warmLeft()+') y hasta las '+hhmm(WARM_TO)+'.';
+  const b=$('warmBtn');
+  b.textContent=lit?'■ Apagar WARM UP':'▶ Prender WARM UP';
+  b.classList.toggle('on',lit);
+  b.disabled=!lit&&(!open||!c);
+  $('warmHint').textContent=lit?'':!c?'Primero elige la escena de Warm up.':!open?'Solo se puede prender de '+hhmm(WARM_FROM)+' a '+hhmm(WARM_TO)+'.':!out?'Ojo: no hay salida MIDI elegida.':'';
+  $('warmSel').disabled=lit;
+}
+function renderWarm(){
+  const box=$('scr-warm'); box.innerHTML='';
+  box.appendChild(phaseHead('warm','Warm up','puertas abiertas','Una sola escena para recibir a la gente. Disponible de '+hhmm(WARM_FROM)+' a '+hhmm(WARM_TO)+'.',false));
+  const rd=el('div','ready warm-state'); rd.id='warmState';
+  const t=el('div'); t.appendChild(el('strong')); t.appendChild(el('p')); rd.appendChild(t);
+  const b=el('button','warm-btn'); b.id='warmBtn'; b.onclick=()=>warmSet(!warmOn); rd.appendChild(b);
+  box.appendChild(rd);
+  const p=el('section','panel warm-pick');
+  p.appendChild(el('h3','ptitle','Escena de Warm up'));
+  p.appendChild(el('p','psub','La escena de tu catálogo que se prende en esta fase.'));
+  const s=document.createElement('select'); s.id='warmSel'; s.setAttribute('aria-label','Escena de Warm up');
+  s.add(new Option('— Elige una escena —',''));
+  const list=S.cat.filter(c=>!c.pending);
+  Object.keys(CATS).forEach(k=>{ const cs=list.filter(c=>c.cat===k); if(!cs.length) return;
+    const g=document.createElement('optgroup'); g.label=CATS[k]; cs.forEach(c=>g.appendChild(new Option(c.name,c.name))); s.appendChild(g); });
+  list.filter(c=>!CATS[c.cat]).forEach(c=>s.add(new Option(c.name,c.name)));
+  s.value=sc(S.warm.scene)?S.warm.scene:'';
+  s.onchange=()=>{ S.warm.scene=s.value; save(); paintWarm(); };
+  p.appendChild(s);
+  const h=el('p','psub warm-hint'); h.id='warmHint'; p.appendChild(h);
+  box.appendChild(p);
+  paintWarm();
+}
+setInterval(()=>{ paintWarmRail(); if(screen==='warm') paintWarm(); },1000);
+paintWarmRail();
 function sysChecks(){
   const R=[];
   const su=S.suite;
@@ -2369,7 +2436,7 @@ function renderCheck(){
 }
 setInterval(()=>{ if(screen==='check') paintChecks(); },1000);
 
-const RENDER={check:renderCheck,warm:()=>renderWip('warm'),open:()=>renderWip('open'),specials:()=>renderWip('specials'),pre:()=>renderWip('pre'),final:()=>renderWip('final')};
+const RENDER={check:renderCheck,warm:renderWarm,open:()=>renderWip('open'),specials:()=>renderWip('specials'),pre:()=>renderWip('pre'),final:()=>renderWip('final')};
 // ================= MI SUITE: asistente por programa =================
 // Cada suite recibe las 4 secciones (Intro, Build, Drop, Break):
 // · por MIDI: la "señal estándar" (una nota por sección)
