@@ -900,8 +900,8 @@ const DEFAULT_CAT=[
   C('B| CYAN','color','toggle',1,32), C('B| PINK','color','toggle',1,24), C('B | GREEN','color','toggle',1,16),
   C('B|BLUE','color','toggle',1,8), C('B| YELLOW','color','toggle',1,0),
   C('B|RED','color','toggle',2,43,{pending:true}), C('B|WHITE','color','toggle',2,44,{pending:true}),
-  C('B| MAIN','mov','toggle',1,41), C('POS','mov','toggle',1,15), C('elicoptero','mov','toggle',1,62),
-  C('SPIRAL 50','mov','toggle',2,36,{pending:true}), C('SPIRAL 25','mov','toggle',2,48,{pending:true}),
+  C('DROP MAIN','mov','toggle',1,41), C('POS','mov','toggle',1,15), C('elicoptero','mov','toggle',1,62),
+  C('SPIRAL 50','mov','toggle',2,36,{pending:true}),
   C('CHAOS','mov','toggle',2,37,{pending:true}), C('beam serie','mov','toggle',2,38,{pending:true}),
   C('corrida','mov','toggle',2,39,{pending:true}), C('tilt drop','mov','toggle',2,42,{pending:true}),
   C('W CIRCLE','mov','toggle',2,45,{pending:true}),
@@ -915,7 +915,7 @@ const DEFAULT_CAT=[
   C('STROBE','strobe','flash',1,100,{note2:'al soltar dispara KILL BEAMS'}), C('FAST SHUTTER','strobe','flash',1,112),
   C('OPEN BEAMS','strobe','flash',1,118), C('SHUTTER','strobe','toggle',1,103), C('LARGE STROBE','strobe','toggle',1,101),
   C('SMOKE','fx','flash',1,114,{page:'INNERBLOOM'}), C('MELO','fx','flash',1,107,{page:'INNERBLOOM'}),
-  C('UP','fx','flash',1,115,{page:'INNERBLOOM'}), C('RAY TRACING','fx','toggle',2,40,{pending:true}),
+  C('UP','fx','flash',1,115,{page:'INNERBLOOM'}), C('rights','mov','flash',1,6,{page:'INNERBLOOM'}), C('RAY TRACING','fx','toggle',2,40,{pending:true}),
   C('gobo','fx','toggle',2,46,{pending:true}), C('DIMMER SERIE','fx','toggle',2,47,{pending:true})
 ];
 
@@ -1047,6 +1047,20 @@ const KEY='cabinaMidiLuces2';
 let S={genre:'house',bpm:124,gate:0.5,cat:JSON.parse(JSON.stringify(DEFAULT_CAT)),hitRows:HIT_ROWS.slice(),
   show:genreShow(GENRES.house),auto:false,lens:{intro:16,build:8,drop:16,break:8},outName:'',inName:'',thruName:''};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.show&&s.cat)S=Object.assign(S,s);}catch(e){}
+// Catálogo 2 (SAT PRE): B| MAIN pasó a DROP MAIN, SPIRAL 25 ya no existe, se agregó "rights".
+// Se aplica una sola vez al catálogo original guardado; las notas MIDI se toman del catálogo nuevo.
+if((S.catRev||1)<2){
+  const ren=(o,from,to)=>{ if(Array.isArray(o)){ for(let i=o.length-1;i>=0;i--){ if(o[i]===from){ if(to==null) o.splice(i,1); else o[i]=to; } else ren(o[i],from,to); } }
+    else if(o&&typeof o==='object') Object.keys(o).forEach(k=>{ if(o[k]===from&&to!=null) o[k]=to; else ren(o[k],from,to); }); };
+  if(!S.catVersion||S.catVersion==='orig'){
+    [S.show,S.songs,S.hitRows].forEach(o=>{ ren(o,'B| MAIN','DROP MAIN'); ren(o,'SPIRAL 25',null); });
+    const def={}; DEFAULT_CAT.forEach(c=>def[c.name]=c);
+    S.cat=S.cat.filter(c=>c.name!=='SPIRAL 25').map(c=>{ const n=c.name==='B| MAIN'?'DROP MAIN':c.name, d=def[n];
+      return d?Object.assign({},c,{name:n,ch:d.ch,note:d.note,mode:d.mode,pending:!!d.pending,page:d.page},d.note2?{note2:d.note2}:{}):c; });
+    DEFAULT_CAT.forEach((d,i)=>{ if(!S.cat.some(c=>c.name===d.name)) S.cat.splice(Math.min(i,S.cat.length),0,JSON.parse(JSON.stringify(d))); });
+  }
+  S.catRev=2;
+}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 const sc=name=>S.cat.find(c=>c.name===name);
 // ---------- secciones estándar (señal común para cualquier venue) ----------
@@ -1074,7 +1088,7 @@ function exampleSong(){
   return {id:'s'+Date.now(),name:'Ejemplo · Canción especial',artist:'Plantilla para editar',bpm:128,end:'show',ret:'build',parts:[
     P('Intro',16,0,['AMBIENT','WASH BACK'],['B|BLUE'],8,[E,E,E,E]),
     P('Verso',16,3,['POS','WASH MID','LAZER'],['B| CYAN','B|BLUE'],4,[E,'x...............',E,E]),
-    P('Pre-coro',8,1,['SPIRAL 25','WASH FRONT','lazer up'],['B| PINK'],4,['........x.x.xxxx','x...x...x...x...',E,E]),
+    P('Pre-coro',8,1,['SPIRAL 50','WASH FRONT','lazer up'],['B| PINK'],4,['........x.x.xxxx','x...x...x...x...',E,E]),
     P('Coro',16,2,['elicoptero','LZR WALL','WASH FRONT'],['B| CYAN','B| PINK','B| YELLOW'],2,['x...............','x...x...x...x...','....x...........','............x...']),
     P('Break',8,7,['RAY TRACING','WARM'],['B|WHITE'],8,[E,E,E,E]),
     P('Final',8,4,['CHAOS','LZR 1X1','WASH FRONT'],['B|RED','B|WHITE'],1,['x.x.x.x.x.x.x.x.','x...x...x...x...',E,E])
