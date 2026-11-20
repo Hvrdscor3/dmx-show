@@ -801,7 +801,8 @@ details.panel>summary::-webkit-details-marker{display:none}
         <div class="vers"><button data-ver="orig">Original</button><button data-ver="v2">V2 Open Format</button><button data-ver="import" id="verImport" hidden>Mi archivo</button></div>
         <button id="pdImport" class="hwbtn acc" style="margin-top:4px">Importar mi archivo de Pro DMX (.cq3 / .cq5)</button>
         <input type="file" id="pdFile" accept=".cq3,.cq5,.cq4,.cq2,.xml" hidden>
-        <label class="check" style="font-size:12px"><input type="checkbox" id="pdSections" checked> Usar los nombres (INTRO, BUILD, DROP, BREAK) para armar las secciones</label>
+        <label class="check" style="font-size:12px"><input type="checkbox" id="pdSections" checked> Usar las etiquetas de los nombres para armar las secciones</label>
+        <span class="vernote">Etiqueta tus escenas en Pro DMX: <b>DROP &#124; elicoptero</b>, <b>BUILD+DROP &#124; LZR WALL</b>, <b>[BREAK] wash</b>, <b>[DROP][COLOR] cian</b>, <b>[GOLPE] strobo</b>. Secciones: INTRO, BUILD, DROP, BREAK, TODO · funciones: COLOR y GOLPE. Lo que no tenga etiqueta se acomoda solo según su tipo (color, movimiento, láser, wash, strobo). Solo se usan escenas con MIDI.</span>
         <span class="vernote" id="verNote"></span>
       </div>
       <div class="midimon" id="midiMon">Último mensaje enviado: —</div>
@@ -1030,7 +1031,7 @@ function genreShowV2(g,key){
 }
 const isV2=()=>S.catVersion==='v2';
 const isImp=()=>S.catVersion==='import'&&Array.isArray(S.importCat);
-function templateFor(key){ return isImp()?importShow():isV2()?genreShowV2(GENRES[key],key):genreShow(GENRES[key]); }
+function templateFor(key){ return isImp()?autoShow(S.cat,GENRES[key],S.importUseNames).show:adaptShow(isV2()?genreShowV2(GENRES[key],key):genreShow(GENRES[key]),S.cat); }
 const p=s=>[...s].map(c=>c==='x');
 function genreShow(g){
   const L=g.s.slice(0,8)+'........', R='........'+g.s.slice(8);
@@ -1976,7 +1977,7 @@ if(S.sk.on) skStart();
 
 // controles
 const gs=$('genre'); Object.entries(GENRES).forEach(([k,v])=>gs.add(new Option(v.name+' · '+v.bpm,k))); gs.value=S.genre;
-$('loadGenre').onclick=()=>{ const g=GENRES[gs.value]; S.genre=gs.value; S.show=templateFor(gs.value); S.hitRows=(isV2()?HIT_ROWS_V2:HIT_ROWS).slice(); setBpm(g.bpm); save(); liveRefresh(); renderEditor(); updateLcd(-1); };
+$('loadGenre').onclick=()=>{ const g=GENRES[gs.value]; S.genre=gs.value; S.show=templateFor(gs.value); S.hitRows=baseHits(S.catVersion||'orig'); setBpm(g.bpm); save(); liveRefresh(); renderEditor(); updateLcd(-1); };
 function setBpm(v){ v=Math.max(60,Math.min(200,Number(v)||120)); S.bpm=v; $('bpm').value=v; $('bpmShow').textContent=v; save(); }
 $('bpm').onchange=e=>setBpm(e.target.value);
 let taps=[];
@@ -2009,7 +2010,7 @@ $('addScene').onclick=()=>{ let n='Escena nueva', k=2; while(sc(n)) n='Escena nu
   S.cat.push(C(n,'fx','toggle',2,60+S.cat.length%60,{pending:true})); save(); renderCat(); renderEditor(); };
 $('resetCat').onclick=()=>{ S.cat=baseCat(S.catVersion||'orig'); lit.clear(); save(); renderCat(); renderEditor(); };
 const baseCat=v=>JSON.parse(JSON.stringify(v==='import'&&Array.isArray(S.importCat)?S.importCat:v==='v2'?DEFAULT_CAT_V2:DEFAULT_CAT));
-const baseHits=v=>v==='import'?importHitRows():(v==='v2'?HIT_ROWS_V2:HIT_ROWS).slice();
+const baseHits=v=>v==='import'?autoHits(S.cat,S.importUseNames):adaptHits((v==='v2'?HIT_ROWS_V2:HIT_ROWS).slice(),S.cat);
 // ---------- importar un proyecto de Pro DMX (.cq3/.cq5: 4 bytes de tamaño + XML comprimido con zlib) ----------
 // la escena va a una sección si su nombre EMPIEZA con ella: "DROP MAIN", "BREAK | azul", "INTRO-1"
 const SEC_RX={intro:/^\s*intro\b/i,build:/^\s*(build(up)?|subida|riser)\b/i,drop:/^\s*drop\b/i,break:/^\s*break(down)?\b/i};
@@ -2043,7 +2044,7 @@ function buildCatalog(doc){
       const steps=sc.getElementsByTagName('LPSteps')[0]; if(steps&&steps.getAttribute('LPNumber')==='0') return; // escena vacía
       const f=(sc.getAttribute('LPMidiTrigger')||'').split('|');
       const flash=sc.getAttribute('LPAutoRelease')==='1';
-      const rec={name,page:pn,mode:flash?'flash':'toggle',cat:guessCat(name)};
+      const tg=tagsOf(name), rec={name,page:pn,mode:flash?'flash':'toggle',cat:tg.has('color')?'color':guessCat(stripTags(name))};
       if(f[0]==='1'&&f.length>2){ rec.ch=(+f[1]||0)+1; rec.note=+f[2]; rec.onRelease=f[5]==='1'; } else rec.pending=true;
       out.push(rec);
     });
@@ -2055,7 +2056,7 @@ function buildCatalog(doc){
   out.filter(c=>!c.pending).forEach(c=>{ const k=c.ch+':'+c.note; (byNote[k]=byNote[k]||[]).push(c); used.add(k); });
   const cat=[], seenName={}; let skipped=0;
   out.forEach(c=>{
-    if(c.pending&&c.page!==mainPage&&!secName(c.name)){ skipped++; return; }
+    if(c.pending&&c.page!==mainPage&&!tagsOf(c.name).size){ skipped++; return; }
     if(!c.pending){ const k=c.ch+':'+c.note, grp=byNote[k], press=grp.filter(x=>!x.onRelease), main=press.find(x=>x.page===mainPage)||press[0]||grp[0]; if(c!==main) return;
       const others=grp.filter(x=>x!==c).map(x=>x.name+(x.onRelease?' (al soltar)':''));
       if(others.length) c.note2='la misma nota también dispara: '+others.join(', '); }
@@ -2067,17 +2068,71 @@ function buildCatalog(doc){
   cat.mainPage=mainPage; cat.skipped=skipped;
   return cat;
 }
-function importHitRows(){
-  const cat=S.importCat||S.cat, ok=cat.filter(c=>!c.pending);
-  const pick=[...ok.filter(c=>c.cat==='strobe'&&c.mode==='flash'),...ok.filter(c=>c.mode==='flash'),...ok].map(c=>c.name);
-  const r=[...new Set(pick)].slice(0,4); while(r.length<4) r.push(r[0]||(cat[0]&&cat[0].name)||''); return r;
+// ---------- programación adaptativa ----------
+// La app arma el show con lo que haya en el proyecto, sin depender de nombres fijos.
+// Etiquetas en el nombre de la escena (se ponen en Pro DMX):
+//   "DROP | elicoptero" · "BUILD+DROP | LZR WALL" · "[BREAK] wash cálido" · "DROP MAIN" · "[DROP][COLOR] cian" · "[GOLPE] strobo"
+//   sección: INTRO, BUILD, DROP, BREAK, TODO · función: COLOR (rotación de colores), GOLPE (filas de golpes)
+// Sin etiquetas: se usa el tipo que se adivina por el nombre (color, movimiento, láser, wash, strobo…).
+// Solo se usan escenas con MIDI.
+const TAG_RX={intro:/^intro$/,build:/^(build(up)?|subida|riser)$/,drop:/^drop$/,break:/^break(down)?$/,all:/^(todo|todas|all)$/,color:/^colou?r(es)?$/,hit:/^(golpes?|hits?)$/};
+const isTag=w=>Object.values(TAG_RX).some(r=>r.test(w.toLowerCase()));
+const stripTags=n=>{ n=String(n||'').replace(/\[[^\]]*\]/g,' '); const pre=n.split('|'); if(pre.length>1&&pre[0].trim()&&pre[0].trim().split(/[\s+\/,&]+/).every(isTag)) n=pre.slice(1).join('|'); return n.trim(); };
+function tagsOf(name){
+  const n=String(name||''), out=new Set(), words=[];
+  n.replace(/\[([^\]]+)\]/g,(m,x)=>{ words.push(...x.split(/[\s+\/,&]+/)); return m; });
+  const rest=n.replace(/\[[^\]]*\]/g,' '), pre=rest.split('|');
+  if(pre.length>1){ const ws=pre[0].trim().split(/[\s+\/,&]+/).filter(Boolean); if(ws.length&&ws.every(isTag)) words.push(...ws); }
+  SECS.forEach(k=>{ if(SEC_RX[k].test(rest)) out.add(k); });   // "DROP MAIN", "INTRO-1"
+  words.forEach(w=>{ w=w.toLowerCase(); Object.keys(TAG_RX).forEach(k=>{ if(TAG_RX[k].test(w)) out.add(k); }); });
+  return out;
 }
-function importShow(){
-  const cat=S.importCat||[], show={};
-  SECS.forEach(k=>{ const fixed=(S.importUseNames!==false)?cat.filter(c=>SEC_RX[k].test(c.name)).map(c=>c.name):[];
-    show[k]={fixed,colors:[],every:4,hits:[E,E,E,E].map(p)}; });
+// qué tipo de escena busca cada sección cuando no hay etiquetas (en orden de preferencia)
+const AUTO_SEC={intro:{want:['combo','wash'],n:2,colors:2,every:8},build:{want:['mov','laser'],n:2,colors:2,every:4},
+  drop:{want:['mov','laser','wash'],n:3,colors:4,every:4},break:{want:['combo','wash'],n:2,colors:2,every:8,rev:true}};
+function autoShow(cat,g,useTags){
+  g=g||GENRES[S.genre]||GENRES.house;
+  const ok=cat.filter(c=>!c.pending).map(c=>({c,t:useTags===false?new Set():tagsOf(c.name)}));
+  const isColor=x=>x.t.has('color')||(x.c.cat==='color'&&!x.t.has('hit'));
+  // sin etiqueta: primero la pestaña principal (la que tiene más escenas con MIDI) y las que se quedan prendidas (toggle)
+  const per={}; ok.forEach(x=>per[x.c.page]=(per[x.c.page]||0)+1);
+  const mainPg=Object.keys(per).sort((a,b)=>per[b]-per[a])[0];
+  const rank=x=>(x.c.page===mainPg?0:2)+(x.c.mode==='toggle'?0:1);
+  // las que apagan o detienen (STOP, KILL, BLACK…) y las de prueba no se eligen solas; con etiqueta sí
+  const free=ok.filter(x=>!x.t.has('all')&&!SECS.some(k=>x.t.has(k))&&!x.t.has('hit')&&!/\b(STOP|KILL|BLACK\w*|OFF|TEST|PRUEBA)\b/i.test(x.c.name)).map((x,i)=>({x,i})).sort((a,b)=>rank(a.x)-rank(b.x)||a.i-b.i).map(o=>o.x);
+  const L=g.s.slice(0,8)+'........', R='........'+g.s.slice(8);
+  const H={intro:[E,'x...............',E,E],build:['........x.x.xxxx',g.k,E,E],drop:[g.strobe,g.k,L,R],break:[E,E,E,E]};
+  const show={}, byTag={};
+  SECS.forEach(k=>{
+    const A=AUTO_SEC[k], mine=ok.filter(x=>x.t.has(k)||x.t.has('all'));
+    let fixed=mine.filter(x=>!isColor(x)&&!x.t.has('hit')).map(x=>x.c.name);
+    let colors=mine.filter(isColor).map(x=>x.c.name);
+    byTag[k]=fixed.length+colors.length;
+    // las etiquetas mandan; si son pocas, se completa hasta el mínimo de la sección con lo que no tiene etiqueta
+    if(fixed.length<A.n){ const pool=A.rev?free.slice().reverse().sort((a,b)=>rank(a)-rank(b)):free;
+      A.want.forEach(w=>{ const x=pool.find(x=>x.c.cat===w&&!isColor(x)&&!fixed.includes(x.c.name)); if(x&&fixed.length<A.n) fixed.push(x.c.name); }); }
+    if(!colors.length){ const cp=free.filter(isColor), mc=cp.filter(x=>x.c.page===mainPg), pool=(mc.length>=A.colors?mc:cp).map(x=>x.c.name);
+      colors=(A.rev?pool.slice().reverse():pool).slice(0,A.colors); }
+    show[k]={fixed,colors,every:A.every,hits:H[k].map(p)};
+  });
+  return {show,byTag};
+}
+function autoHits(cat,useTags){
+  const ok=cat.filter(c=>!c.pending);
+  const tagged=useTags===false?[]:ok.filter(c=>tagsOf(c.name).has('hit'));
+  const pick=[...tagged,...ok.filter(c=>c.cat==='strobe'&&c.mode==='flash'),...ok.filter(c=>c.mode==='flash'),...ok].map(c=>c.name);
+  const r=[...new Set(pick)].slice(0,4); while(r.length<4) r.push(r[0]||''); return r;
+}
+// plantillas incluidas: si una escena no existe o no tiene MIDI en este catálogo, se cambia por otra del mismo tipo
+function playable(cat,n){ const c=cat.find(x=>x.name===n); return c&&!c.pending?c:null; }
+function swapFor(cat,n,used){ if(playable(cat,n)) return n; const c=cat.find(x=>x.name===n), k=c?c.cat:guessCat(n);
+  const r=cat.find(x=>!x.pending&&x.cat===k&&!used.has(x.name)); return r?r.name:null; }
+function adaptShow(show,cat){
+  SECS.forEach(k=>{ const s=show[k]; if(!s) return; const used=new Set([...s.fixed,...s.colors].filter(n=>playable(cat,n)));
+    ['fixed','colors'].forEach(f=>{ s[f]=s[f].map(n=>{ const r=swapFor(cat,n,used); if(r) used.add(r); return r; }).filter(Boolean); }); });
   return show;
 }
+function adaptHits(rows,cat){ const used=new Set(rows.filter(n=>playable(cat,n))); return rows.map(n=>{ const r=swapFor(cat,n,used); if(r){ used.add(r); return r; } return n; }); }
 $('pdImport').onclick=()=>$('pdFile').click();
 $('pdFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return;
   $('verNote').textContent='Leyendo '+f.name+'…';
@@ -2086,12 +2141,13 @@ $('pdFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if
     if(!cat.length) throw new Error('No encontré escenas en el archivo.');
     S.importCat=cat; S.importName=f.name; S.importUseNames=$('pdSections').checked;
     setVersion('import');
-    const sec=SECS.map(k=>SLABEL[k]+': '+S.show[k].fixed.length).join(' · ');
-    $('verNote').textContent='Importé '+cat.length+' escenas de '+f.name+': '+cat.filter(c=>!c.pending).length+' con MIDI y '+cat.filter(c=>c.pending).length+' por asignar de la pestaña '+cat.mainPage+(cat.skipped?' (omití '+cat.skipped+' sin MIDI de otras pestañas)':'')+'. '+(S.importUseNames?'Por nombre → '+sec:'');
+    const bt=autoShow(S.cat,GENRES[S.genre],S.importUseNames).byTag;
+    const sec=SECS.map(k=>SLABEL[k]+': '+(bt[k]?bt[k]+' por etiqueta':'automático')).join(' · ');
+    $('verNote').textContent='Importé '+cat.length+' escenas de '+f.name+': '+cat.filter(c=>!c.pending).length+' con MIDI y '+cat.filter(c=>c.pending).length+' por asignar de la pestaña '+cat.mainPage+(cat.skipped?' (omití '+cat.skipped+' sin MIDI de otras pestañas)':'')+'. Secciones → '+sec+'.';
   }catch(err){ $('verNote').textContent='No pude leer el archivo: '+err.message; }
 };
 $('pdSections').checked=S.importUseNames!==false;
-$('pdSections').onchange=e=>{ S.importUseNames=e.target.checked; save(); if(isImp()){ S.show=importShow(); save(); renderEditor(); } };
+$('pdSections').onchange=e=>{ S.importUseNames=e.target.checked; save(); if(isImp()){ S.show=templateFor(S.genre); S.hitRows=baseHits('import'); save(); renderEditor(); } };
 function setVersion(v){
   if(playing) allOff(performance.now());
   S.catVersion=v; S.cat=baseCat(v);
