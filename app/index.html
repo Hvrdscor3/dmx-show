@@ -2249,8 +2249,23 @@ const rmNewKey=()=>Array.from(crypto.getRandomValues(new Uint8Array(4)),b=>b.toS
 if(!S.remote.key) S.remote.key=rmNewKey();
 const RM={ips:[],port:8096,err:'',last:''};
 const rmOk=()=>!!(window.dmxApp&&dmxApp.remoteStart);
+// lo que suena según ShowKontrol (para la tarjeta "Sonando" del celular)
+function rmSk(){
+  if(!SK.timer) return {status:'ShowKontrol sin conectar'};
+  const m=SK.master, f=SK.frame||{};
+  if(!SK.ok) return {status:SK.lastErr||'Conectando con ShowKontrol…'};
+  if(!m) return {status:'Conectado · sin deck master'};
+  const run=/playing|looping/.test(f['playback.state']||m.state||'');
+  const pos=SP.on?SP.pos+(SP.run?(performance.now()-SP.t)*(SP.speed||1):0):((m.posUS||0)/1000);
+  const nIn=f['struct.nextInMs']>=0?Math.max(0,f['struct.nextInMs']-(performance.now()-(SK.ts||performance.now()))):null;
+  return { deck:m.n, title:f['metadata.title']||m.title||'', artist:f['metadata.artist']||m.artist||'',
+    bpm:Math.round((m.bpm||f['beat.currentBpm']||0)*10)/10, run, pos:Math.round(pos), dur:Math.round(SP.dur||0),
+    cur:f['struct.current']||'', next:f['struct.next']||'', nextIn:nIn==null?null:Math.round(nIn),
+    sec:structToSec(f['struct.current']),
+    segs:SP.on&&SP.segs?SP.segs.map(x=>({s:Math.round(x.s),e:Math.round(x.e),l:x.label,k:x.sec})):[] };
+}
 function rmState(){
-  return { live, playing, bpm:S.bpm, lit:[...lit],
+  return { live, playing, bpm:S.bpm, lit:[...lit], sk:rmSk(),
     secs:SECS.map(k=>({k,label:SLABEL[k]})),
     cats:CATS,
     scenes:S.cat.map(c=>({n:c.name,cat:c.cat,page:c.page,flash:c.mode==='flash',pend:!!c.pending})),

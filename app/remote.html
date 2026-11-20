@@ -24,6 +24,19 @@ button{font:inherit;color:inherit;border:0;background:var(--card2);border-radius
 .top small{color:var(--muted);font-family:var(--mono);font-size:12px}
 .top button{padding:10px 14px;font-weight:700}
 #play.on{background:var(--green);color:#04120a}
+.now{background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:12px}
+.nh{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.now b{display:block;font-size:18px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.now small{display:block;color:var(--muted);font-size:13px;min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{position:relative;height:16px;border-radius:6px;background:var(--card2);margin:10px 0 6px;overflow:hidden}
+.segs{position:absolute;inset:0}
+.segs i{position:absolute;top:0;bottom:0;opacity:.35;border-right:1px solid var(--bg)}
+.segs i.past{opacity:.85}
+.bar>i{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;box-shadow:0 0 6px #fff;left:0}
+.nf{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}
+.nf span:first-child{font-weight:600}
+.nf span:last-child{font-family:var(--mono);color:var(--muted);white-space:nowrap}
+.now.off b{color:var(--muted);font-size:14px;font-weight:600}
 .secs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
 .secs button{padding:14px 2px;font-weight:700;font-size:13px;border:2px solid transparent}
 .secs button.live{border-color:var(--c);background:color-mix(in srgb,var(--c) 22%,var(--card2))}
@@ -60,6 +73,13 @@ button{font:inherit;color:inherit;border:0;background:var(--card2);border-radius
   <div class="t"><b id="sec">DMX Remote</b><small id="info">conectando…</small></div>
   <button id="tap">TAP</button>
   <button id="play">▶</button>
+</div>
+<div class="now" id="now">
+  <div class="nh"><span id="nDeck">SHOWKONTROL</span><span id="nBpm"></span></div>
+  <b id="nTitle">—</b>
+  <small id="nArtist"></small>
+  <div class="bar" id="nBar"><div class="segs" id="nSegs"></div><i id="nHead"></i></div>
+  <div class="nf"><span id="nCur"></span><span id="nTime"></span></div>
 </div>
 <div class="secs" id="secs"></div>
 <div class="h" id="fdH" hidden>Faders</div>
@@ -137,6 +157,7 @@ function show(box,val,man){
 // ----- pintar estado en vivo -----
 function paint(){
   if(!st) return;
+  paintSk();
   const lbl=(st.secs||[]).find(s=>s.k===st.live);
   $('sec').textContent=lbl?lbl.label:'DMX Remote';
   $('info').textContent=(st.playing?'▶ corriendo':'■ detenido')+' · '+st.bpm+' BPM';
@@ -146,6 +167,32 @@ function paint(){
   document.querySelectorAll('.sc').forEach(b=>{ if(!b.matches(':active')) b.classList.toggle('lit',lit.has(b.dataset.n)); });
   (st.faders||[]).forEach(f=>{ const k=f.ch+':'+f.cc; if(dragging[k]) return; const box=document.querySelector('.fd[data-k="'+k+'"]'); if(box) show(box,f.v,f.manual); });
 }
+// ----- lo que suena (ShowKontrol) · la posición avanza sola entre lecturas -----
+let skAt=0, segKey='';
+const mmss=ms=>{ ms=Math.max(0,ms||0); const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+function paintSk(){
+  const k=st&&st.sk; if(!k) return; skAt=performance.now();
+  const box=$('now'); box.classList.toggle('off',!k.deck);
+  if(!k.deck){ $('nDeck').textContent='SHOWKONTROL'; $('nBpm').textContent=''; $('nTitle').textContent=k.status||'—'; $('nArtist').textContent=''; $('nSegs').innerHTML=''; $('nHead').style.display='none'; $('nCur').textContent=''; $('nTime').textContent=''; return; }
+  $('nDeck').textContent='DECK '+k.deck+' · '+(k.run?'SONANDO':'PAUSA'); $('nBpm').textContent=k.bpm?k.bpm+' BPM':'';
+  $('nTitle').textContent=k.title||'Sin título'; $('nArtist').textContent=k.artist||'';
+  const key=(k.segs||[]).map(s=>s.s+'-'+s.e+s.l).join('|')+':'+k.dur;
+  if(key!==segKey){ segKey=key; const g=$('nSegs'); g.innerHTML='';
+    (k.segs||[]).forEach(s=>{ const i=el('i'); i.style.left=(s.s/k.dur*100)+'%'; i.style.width=((s.e-s.s)/k.dur*100)+'%'; i.style.background=COL[s.k]||'#666'; i.dataset.e=s.e; i.title=s.l; g.appendChild(i); }); }
+  $('nHead').style.display=k.dur?'':'none';
+}
+function tickSk(){
+  const k=st&&st.sk;
+  if(k&&k.deck){
+    const d=k.run?performance.now()-skAt:0, pos=k.pos+d;
+    if(k.dur){ $('nHead').style.left=Math.min(100,pos/k.dur*100)+'%'; document.querySelectorAll('#nSegs i').forEach(i=>i.classList.toggle('past',+i.dataset.e<=pos)); }
+    const nIn=k.nextIn==null?null:Math.max(0,k.nextIn-d);
+    $('nCur').textContent=(k.cur||'—')+(k.next?' → '+k.next+(nIn!=null?' en '+Math.ceil(nIn/1000)+' s':''):'');
+    $('nTime').textContent=mmss(pos)+(k.dur?' / '+mmss(k.dur):'');
+  }
+  requestAnimationFrame(tickSk);
+}
+requestAnimationFrame(tickSk);
 // ----- botones -----
 $('play').onclick=()=>cmd({t:'play'});
 $('tap').onclick=()=>cmd({t:'tap'});
