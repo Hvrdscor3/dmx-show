@@ -115,6 +115,60 @@ ipcMain.handle('remote:start', (_e, key) => new Promise(resolve => {
 ipcMain.handle('remote:stop', () => { if (remote.srv) { remote.srv.close(); remote.srv = null; } remote.key = ''; return { ok: true }; });
 ipcMain.on('remote:state', (_e, s) => { remote.state = s; });
 
+// ---------- búsqueda de ShowKontrol en la red (su IP cambia: DHCP) ----------
+// 1) esta PC y las IPs donde ya estuvo · 2) todas las IPs de la red de cada adaptador (según su máscara,
+// p. ej. /22 en los TP-Link Deco: 192.168.68.x–71.x) con el puerto abierto · 3) confirma que sea ShowKontrol.
+const net = require('net');
+const ipToInt = ip => ip.split('.').reduce((a, b) => ((a << 8) + (+b)) >>> 0, 0);
+const intToIp = n => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+function subnetHosts() {
+  const hosts = [], nets = [];
+  for (const i of Object.values(os.networkInterfaces()).flat()) {
+    if (!i || i.family !== 'IPv4' || i.internal || /^169\.254\./.test(i.address)) continue;
+    let bits = i.cidr ? +i.cidr.split('/')[1] : 24;
+    bits = Math.max(22, Math.min(30, bits || 24));            // máximo 1022 IPs por red
+    const mask = (0xFFFFFFFF << (32 - bits)) >>> 0, base = (ipToInt(i.address) & mask) >>> 0, size = 2 ** (32 - bits);
+    nets.push(intToIp(base) + '/' + bits);
+    for (let k = 1; k < size - 1; k++) hosts.push(intToIp((base + k) >>> 0));
+  }
+  return { hosts: [...new Set(hosts)], nets: [...new Set(nets)] };
+}
+function tcpOpen(host, port, ms) {
+  return new Promise(res => {
+    const s = net.connect({ host, port }); let d = false;
+    const fin = v => { if (d) return; d = true; s.destroy(); res(v); };
+    s.setTimeout(ms, () => fin(false)); s.once('connect', () => fin(true)); s.once('error', () => fin(false));
+  });
+}
+function skInfo(host, port, ms) {
+  return new Promise(res => {
+    const rq = http.get({ host, port, path: '/api/v1', timeout: ms, headers: { accept: 'application/json' } }, r => {
+      let b = ''; r.setEncoding('utf8');
+      r.on('data', c => { b += c; if (b.length > 65536) rq.destroy(); });
+      r.on('end', () => { try { const j = JSON.parse(b); res(j && /showkontrol/i.test(j.name || '') ? j : null); } catch (e) { res(null); } });
+    });
+    rq.on('timeout', () => { rq.destroy(); res(null); }); rq.on('error', () => res(null));
+  });
+}
+async function pool(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]); }));
+}
+let skScanBusy = null;
+ipcMain.handle('sk:scan', (_e, opt) => {
+  if (skScanBusy) return skScanBusy;
+  skScanBusy = (async () => {
+    const port = +(opt && opt.port) || 8090;
+    const hints = [...new Set(((opt && opt.hints) || []).map(String).filter(h => /^\d+\.\d+\.\d+\.\d+$/.test(h)))];
+    const { hosts, nets } = subnetHosts();
+    for (const h of ['127.0.0.1', ...hints]) { const j = await skInfo(h, port, 700); if (j) return { found: [{ host: h + ':' + port, info: j }], nets }; }
+    const open = []; await pool(hosts, 256, async h => { if (await tcpOpen(h, port, 450)) open.push(h); });
+    const found = []; await pool(open, 16, async h => { const j = await skInfo(h, port, 1500); if (j) found.push({ host: h + ':' + port, info: j }); });
+    return { found, nets, open: open.filter(h => !found.some(f => f.host.startsWith(h + ':'))) };
+  })();
+  return skScanBusy.finally(() => { skScanBusy = null; });
+});
+
 // ---------- ventana ----------
 function createWindow() {
   win = new BrowserWindow({
