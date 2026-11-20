@@ -242,6 +242,9 @@ label.f.inline{flex-direction:row;align-items:center;gap:8px}
 /* grilla de golpes = pads con LED */
 .gridwrap{overflow-x:auto;background:var(--chassis);border-radius:18px;padding:14px;border:1px solid var(--chassisEdge);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
 .grid{display:grid;grid-template-columns:200px 72px repeat(16,minmax(30px,1fr));gap:5px;align-items:center;min-width:920px}
+.rmbox{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);align-items:center}
+.rmchk{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;flex:1}
+.rmurl{font-family:var(--mono);user-select:all;color:var(--ink)}
 .faders{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .fdrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:8px 0}
 .fdname{display:flex;flex-direction:column;gap:2px;min-width:220px;flex:1}
@@ -818,6 +821,11 @@ details.panel>summary::-webkit-details-marker{display:none}
         <button id="resync" title="Úsalo si apagaste o prendiste escenas a mano en Pro DMX">Todo apagado en Pro DMX</button>
         <button id="panic">Apagar todo</button>
       </div>
+      <div class="row rmbox">
+        <label class="rmchk"><input type="checkbox" id="rmOn"> Control desde el celular (WiFi)</label>
+        <button id="rmKey" title="Los celulares con la clave anterior dejan de funcionar">Cambiar clave</button>
+      </div>
+      <div class="vernote" id="rmNote"></div>
     </section>
   </div>
 
@@ -2188,6 +2196,58 @@ if(window.dmxApp){
     clearTimeout(updT); if(s.state==='latest') updT=setTimeout(()=>{ if(updState==='latest') vb.textContent='Buscar actualización'; },5000); });
   vb.onclick=()=>{ if(updState==='ready') dmxApp.installUpdate(); else dmxApp.checkUpdate(); };
 }
+// ---------- control desde el celular (WiFi, puerto 8096; ver main.js y remote.html) ----------
+S.remote=Object.assign({on:false,key:''},S.remote||{});
+const rmNewKey=()=>Array.from(crypto.getRandomValues(new Uint8Array(4)),b=>b.toString(36).padStart(2,'0')).join('').slice(0,6);
+if(!S.remote.key) S.remote.key=rmNewKey();
+const RM={ips:[],port:8096,err:'',last:''};
+const rmOk=()=>!!(window.dmxApp&&dmxApp.remoteStart);
+function rmState(){
+  return { live, playing, bpm:S.bpm, lit:[...lit],
+    secs:SECS.map(k=>({k,label:SLABEL[k]})),
+    cats:CATS,
+    scenes:S.cat.map(c=>({n:c.name,cat:c.cat,page:c.page,flash:c.mode==='flash',pend:!!c.pending})),
+    faders:fdList().map(f=>{ const st=FD[fdKey(f)]||{}; return {ch:f.ch,cc:f.cc,label:f.scenes.join(', ')+' · '+(FD_PARAM[f.param]||f.param),v:st.sent==null?null:Math.round((st.sent-f.min)/((f.max-f.min)||1)*127),manual:!!(st.manual&&st.manual===fdSecKey())}; }) };
+}
+function rmPush(){ if(!S.remote.on||!rmOk()) return; const s=JSON.stringify(rmState()); if(s===RM.last) return; RM.last=s; dmxApp.remoteState(JSON.parse(s)); }
+function rmCmd(m){
+  if(!S.remote.on||!m) return; const t=performance.now();
+  if(m.t==='scene'){ const c=sc(m.n); if(!c) return;
+    if(c.mode==='flash') setScene(c.name,!!m.down,t); else if(m.down) setScene(c.name,!lit.has(c.name),t);
+    queueUi(); }
+  else if(m.t==='fader'){ const ch=+m.ch, cc=+m.cc, v=Math.max(0,Math.min(127,Math.round(+m.v||0)));
+    if(!(ch>=1&&ch<=16&&cc>=0&&cc<=127)||venueOnly()) return;
+    const f=fdList().find(x=>x.ch===ch&&x.cc===cc), mv=f?Math.round(f.min+(f.max-f.min)*v/127):v;
+    send([0xB0|(ch-1),cc,mv],t); fdManual(ch,cc,mv); }
+  else if(m.t==='section'){ if(SECS.includes(m.k)) pickSection(m.k); }
+  else if(m.t==='next') nextSectionNow();
+  else if(m.t==='play'){ if(!ext){ playing?stop():start(); } }
+  else if(m.t==='tap') tapTempo();
+  else if(m.t==='panic') panic();
+  rmPush();
+}
+function rmStart(){
+  if(!rmOk()){ RM.err='Solo funciona en la app de escritorio.'; S.remote.on=false; renderRm(); return; }
+  dmxApp.remoteStart(S.remote.key).then(r=>{
+    if(r&&r.ok){ RM.ips=r.ips||[]; RM.port=r.port||8096; RM.err=''; RM.last=''; rmPush(); }
+    else { RM.err='No pude abrir el puerto 8096'+(r&&r.error?' ('+r.error+')':'')+'.'; S.remote.on=false; save(); }
+    renderRm(); });
+}
+function rmStop(){ if(rmOk()) dmxApp.remoteStop(); renderRm(); }
+function renderRm(){
+  const box=$('rmNote'), cb=$('rmOn'); if(!box) return; cb.checked=!!S.remote.on;
+  if(RM.err){ box.textContent=RM.err; return; }
+  if(!S.remote.on){ box.textContent='Apagado. Actívalo para manejar escenas, faders y secciones desde el celular (misma red WiFi).'; return; }
+  const urls=RM.ips.map(ip=>'http://'+ip+':'+RM.port+'/?k='+S.remote.key);
+  box.innerHTML=urls.length
+    ?'En el celular (misma WiFi) abre: '+urls.map(u=>'<b class="rmurl">'+u+'</b>').join(' o ')+'<br>En iPhone: Compartir → <b>Agregar a inicio</b> para abrirlo como app. Si Windows pregunta, permite el acceso en <b>redes privadas</b>.'
+    :'Activo, pero esta PC no tiene red. Conéctala a la WiFi o al router.';
+}
+if(rmOk()) dmxApp.onRemote(rmCmd);
+$('rmOn').onchange=e=>{ S.remote.on=e.target.checked; RM.err=''; save(); S.remote.on?rmStart():rmStop(); };
+$('rmKey').onclick=()=>{ S.remote.key=rmNewKey(); save(); if(S.remote.on) rmStart(); else renderRm(); };
+setInterval(rmPush,250);
+if(S.remote.on) rmStart(); else renderRm();
 // ================= FASES DE LA NOCHE =================
 const PHASES=[
   {id:'check',name:'CHECK',sub:'Antes de abrir',c:'#9aa3b5',w:1.25,e:.08,g:0},

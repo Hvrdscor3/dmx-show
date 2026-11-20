@@ -65,6 +65,56 @@ function startServer() {
   });
 }
 
+// ---------- control desde el celular (WiFi) ----------
+// Servidor aparte en la red local (puerto 8096), solo mientras está activado en Ajustes.
+// El celular abre http://<ip-de-la-pc>:8096/?k=<clave> · cada orden lleva la clave.
+// Ordenes: POST /api/cmd {t:'scene'|'fader'|'section'|...} → la página (renderer) por IPC.
+// Estado:  GET /api/state → lo último que mandó la página (escenas, faders, sección).
+const os = require('os');
+const REMOTE_PORT = 8096;
+const remote = { srv: null, key: '', state: {} };
+function lanIps() {
+  return Object.values(os.networkInterfaces()).flat()
+    .filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address);
+}
+function remoteHandler(req, res) {
+  const u = new URL(req.url, 'http://x');
+  if (u.pathname === '/' || u.pathname === '/remote.html') {
+    return fs.readFile(path.join(APP_DIR, 'remote.html'), (err, data) => {
+      if (err) { res.writeHead(404); return res.end(); }
+      res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' }); res.end(data);
+    });
+  }
+  if (!u.pathname.startsWith('/api/')) { res.writeHead(404); return res.end(); }
+  if (!remote.key || u.searchParams.get('k') !== remote.key) { res.writeHead(403); return res.end(); }
+  if (u.pathname === '/api/state' && req.method === 'GET') {
+    res.writeHead(200, { 'content-type': MIME['.json'], 'cache-control': 'no-store' });
+    return res.end(JSON.stringify(remote.state || {}));
+  }
+  if (u.pathname === '/api/cmd' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => { body += c; if (body.length > 4096) req.destroy(); });
+    req.on('end', () => {
+      let msg = null; try { msg = JSON.parse(body); } catch (e) {}
+      if (!msg || typeof msg.t !== 'string') { res.writeHead(400); return res.end(); }
+      if (win && !win.isDestroyed()) win.webContents.send('remote:cmd', msg);
+      res.writeHead(204); res.end();
+    });
+    return;
+  }
+  res.writeHead(404); res.end();
+}
+ipcMain.handle('remote:start', (_e, key) => new Promise(resolve => {
+  remote.key = String(key || '');
+  const done = () => resolve({ ok: true, port: REMOTE_PORT, ips: lanIps() });
+  if (remote.srv) return done();
+  const srv = http.createServer(remoteHandler);
+  srv.on('error', err => { remote.srv = null; resolve({ ok: false, error: err.code || String(err) }); });
+  srv.listen(REMOTE_PORT, '0.0.0.0', () => { remote.srv = srv; done(); });
+}));
+ipcMain.handle('remote:stop', () => { if (remote.srv) { remote.srv.close(); remote.srv = null; } remote.key = ''; return { ok: true }; });
+ipcMain.on('remote:state', (_e, s) => { remote.state = s; });
+
 // ---------- ventana ----------
 function createWindow() {
   win = new BrowserWindow({
