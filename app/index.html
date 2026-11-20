@@ -1862,7 +1862,7 @@ function renderSk(decks,f){
   decks.forEach(d=>{ const c=el('div','stdcard'); c.style.background='var(--tileBin)'; c.style.color='var(--tileBfg)';
     if(d===m){ c.classList.add('live'); c.dataset.s=sec||'intro'; }
     const h=el('div','h'); h.appendChild(el('b',null,'DECK '+d.n)); h.appendChild(el('span','nm',(d.master?'MASTER · ':'')+String(d.state||'').toUpperCase())); c.appendChild(h);
-    const t=el('div',null,d.title||'—'); t.style.fontWeight='600'; t.style.overflowWrap='anywhere'; c.appendChild(t);
+    const t=el('div',null,(d===m?skTitle(d,f):d.title)||'—'); t.style.fontWeight='600'; t.style.overflowWrap='anywhere'; c.appendChild(t);
     const mm=Math.floor((d.posUS||0)/6e7), ss=Math.floor((d.posUS||0)/1e6)%60;
     let line=(Math.round((d.bpm||0)*10)/10)+' BPM · '+mm+':'+String(ss).padStart(2,'0');
     if(d===m&&f) line+=' · '+(f['struct.current']||'')+(f['struct.nextInMs']>=0?' → '+(f['struct.next']||'')+' en '+Math.ceil(f['struct.nextInMs']/1000)+'s':'');
@@ -1881,7 +1881,7 @@ function skProgData(m,f){
   SP.dur=(f['metadata.durationUS']||0)/1000||Math.max(1,...segs.map(x=>x.e));
   SP.pos=(m.posUS!=null?m.posUS:f['playback.positionUS']||0)/1000; SP.t=SK.ts||performance.now();
   SP.speed=(m.speed!=null?m.speed:f['beat.playSpeed'])||0; SP.run=/playing|looping/.test(f['playback.state']||m.state||'');
-  SP.title=f['metadata.title']||m.title||''; SP.deck=m.n;
+  SP.title=skTitle(m,f); SP.deck=m.n;
   // grid de la pista (BPM original), igual que liveFrame: el compás 1 es el inicio de la primera frase
   SP.tb=(SP.speed>0.3&&m.bpm>0)?m.bpm/SP.speed:(+f['beat.trackBpm']||0);
   SP.off=+f['beatgrid.offsetMs']||0; SP.p0=((+String(f['phrase.starts']||'1').split(',')[0])||1)-1;
@@ -2250,6 +2250,13 @@ if(!S.remote.key) S.remote.key=rmNewKey();
 const RM={ips:[],port:8096,err:'',last:''};
 const rmOk=()=>!!(window.dmxApp&&dmxApp.remoteStart);
 // lo que suena según ShowKontrol (para la tarjeta "Sonando" del celular)
+// título/artista: el nombre del campo cambia según la versión de ShowKontrol, se busca en todo lo que llega
+function skPick(rx,...objs){ const seen=new Set(); const walk=(o,d)=>{ if(!o||typeof o!=='object'||d>3||seen.has(o)) return ''; seen.add(o);
+    for(const k in o){ const v=o[k]; if(typeof v==='string'&&v.trim()&&rx.test(k)) return v.trim(); }
+    for(const k in o){ const r=walk(o[k],d+1); if(r) return r; } return ''; };
+  for(const o of objs){ const r=walk(o,0); if(r) return r; } return ''; }
+const skTitle=(m,f)=>(f&&f['metadata.title'])||(m&&m.title)||skPick(/(^|[._])(title|songname|trackname)$/i,m&&m.track,m&&m.metadata,f,SK.detail&&SK.detail.track,SK.detail&&SK.detail.metadata,SK.detail);
+const skArtist=(m,f)=>(f&&f['metadata.artist'])||(m&&m.artist)||skPick(/artist$/i,m,f,SK.detail);
 function rmSk(){
   if(!SK.timer) return {status:'ShowKontrol sin conectar'};
   const m=SK.master, f=SK.frame||{};
@@ -2258,7 +2265,7 @@ function rmSk(){
   const run=/playing|looping/.test(f['playback.state']||m.state||'');
   const pos=SP.on?SP.pos+(SP.run?(performance.now()-SP.t)*(SP.speed||1):0):((m.posUS||0)/1000);
   const nIn=f['struct.nextInMs']>=0?Math.max(0,f['struct.nextInMs']-(performance.now()-(SK.ts||performance.now()))):null;
-  return { deck:m.n, title:f['metadata.title']||m.title||'', artist:f['metadata.artist']||m.artist||'',
+  return { deck:m.n, title:skTitle(m,f), artist:skArtist(m,f),
     bpm:Math.round((m.bpm||f['beat.currentBpm']||0)*10)/10, run, pos:Math.round(pos), dur:Math.round(SP.dur||0),
     cur:f['struct.current']||'', next:f['struct.next']||'', nextIn:nIn==null?null:Math.round(nIn),
     sec:structToSec(f['struct.current']),
