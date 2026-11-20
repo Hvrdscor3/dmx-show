@@ -2256,7 +2256,7 @@ try{ const c=JSON.parse(localStorage.getItem(CHK_KEY)||'null'); if(c&&Array.isAr
 const saveChk=()=>{ try{ localStorage.setItem(CHK_KEY,JSON.stringify(CHK)); }catch(e){} };
 
 // ---------- WARM UP ----------
-// Solo se puede prender de 8:00 pm a 10:30 pm. Una sola escena, elegida por el usuario (S.warm.scene).
+// Horario SUGERIDO de 8:00 pm a 10:30 pm (no bloquea: fuera de horario solo avisa). Una sola escena, elegida por el usuario (S.warm.scene).
 // Si la escena sigue prendida al terminar el horario, NO se apaga sola (show en vivo): se puede apagar desde aquí.
 const WARM_FROM=20*60, WARM_TO=22*60+30;           // minutos desde medianoche
 S.warm=Object.assign({scene:''},S.warm||{});
@@ -2268,32 +2268,32 @@ const warmLeft=()=>{ const m=nowMin(), d=warmOpen()?WARM_TO-m:((WARM_FROM-m)+144
 function warmSet(want){
   const t=performance.now();
   if(!want){ const c=warmOn&&sc(warmOn); if(c) c.mode==='toggle'?tap1(c,t):off(c,t); warmOn=null; }
-  else { if(!warmOpen()||warmOn) return; const c=sc(S.warm.scene); if(!c) return; c.mode==='toggle'?tap1(c,t):on(c,t); warmOn=c.name; }
+  else { if(warmOn) return; const c=sc(S.warm.scene); if(!c) return; c.mode==='toggle'?tap1(c,t):on(c,t); warmOn=c.name; }
   if(screen==='warm') paintWarm();
   paintWarmRail();
 }
 function paintWarmRail(){
   const b=$('ph_warm'); if(!b) return; const open=warmOpen();
-  b.classList.toggle('locked',!open); b.classList.toggle('lit',!!warmOn);
-  b.querySelector('small').textContent=warmOn?'Escena prendida':open?'Hasta las '+hhmm(WARM_TO):hhmm(WARM_FROM)+' – '+hhmm(WARM_TO);
+  b.classList.toggle('lit',!!warmOn);
+  b.querySelector('small').textContent=warmOn?'Escena prendida':open?'Hasta las '+hhmm(WARM_TO):'Sugerido '+hhmm(WARM_FROM)+' – '+hhmm(WARM_TO);
 }
 function paintWarm(){
   const st=$('warmState'); if(!st) return;
   const open=warmOpen(), c=sc(S.warm.scene), lit=!!warmOn;
   st.classList.toggle('ok',open); st.classList.toggle('lit',lit);
-  st.querySelector('strong').textContent=lit?'WARM UP prendido':open?'Warm up disponible':'Fuera de horario';
-  st.querySelector('p').textContent=lit?(warmOn+(open?' · el horario termina en '+warmLeft():' · el horario ya terminó, apágalo cuando quieras')):
-    open?'Termina a las '+hhmm(WARM_TO)+' (en '+warmLeft()+')':'Se habilita a las '+hhmm(WARM_FROM)+' (en '+warmLeft()+') y hasta las '+hhmm(WARM_TO)+'.';
+  st.querySelector('strong').textContent=lit?'WARM UP prendido':open?'Warm up disponible':'Fuera del horario sugerido';
+  st.querySelector('p').textContent=lit?(warmOn+(open?' · el horario sugerido termina en '+warmLeft():' · fuera del horario sugerido, apágalo cuando quieras')):
+    open?'Horario sugerido hasta las '+hhmm(WARM_TO)+' (en '+warmLeft()+')':'Horario sugerido: '+hhmm(WARM_FROM)+' – '+hhmm(WARM_TO)+'. Igual lo puedes prender.';
   const b=$('warmBtn');
   b.textContent=lit?'■ Apagar WARM UP':'▶ Prender WARM UP';
   b.classList.toggle('on',lit);
-  b.disabled=!lit&&(!open||!c);
-  $('warmHint').textContent=lit?'':!c?'Primero elige la escena de Warm up.':!open?'Solo se puede prender de '+hhmm(WARM_FROM)+' a '+hhmm(WARM_TO)+'.':!out?'Ojo: no hay salida MIDI elegida.':'';
+  b.disabled=!lit&&!c;
+  $('warmHint').textContent=lit?'':!c?'Primero elige la escena de Warm up.':!out?'Ojo: no hay salida MIDI elegida.':'';
   $('warmSel').disabled=lit;
 }
 function renderWarm(){
   const box=$('scr-warm'); box.innerHTML='';
-  box.appendChild(phaseHead('warm','Warm up','puertas abiertas','Una sola escena para recibir a la gente. Disponible de '+hhmm(WARM_FROM)+' a '+hhmm(WARM_TO)+'.',false));
+  box.appendChild(phaseHead('warm','Warm up','puertas abiertas','Una sola escena para recibir a la gente. Horario sugerido de '+hhmm(WARM_FROM)+' a '+hhmm(WARM_TO)+'.',false));
   const rd=el('div','ready warm-state'); rd.id='warmState';
   const t=el('div'); t.appendChild(el('strong')); t.appendChild(el('p')); rd.appendChild(t);
   const b=el('button','warm-btn'); b.id='warmBtn'; b.onclick=()=>warmSet(!warmOn); rd.appendChild(b);
