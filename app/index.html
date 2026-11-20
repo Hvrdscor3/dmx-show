@@ -702,6 +702,9 @@ details.panel>summary::-webkit-details-marker{display:none}
       <label class="f check"><input type="checkbox" id="skBpm"> Seguir BPM del master</label>
       <label class="f check"><input type="checkbox" id="skPhrase"> Cambiar sección con la estructura</label>
       <label class="f check"><input type="checkbox" id="skAlign"> Alinear el compás 1 con el CDJ</label>
+      <label class="f" title="Lo que tardan Pro DMX, la interfaz DMX y las luces en reaccionar. Si las luces llegan tarde, súbelo; si se adelantan, bájalo.">Adelantar luces (ms)
+        <input type="number" id="skLead" min="0" max="250" step="5" style="width:90px">
+      </label>
       <label class="f">"Groove" cuenta como
         <select id="skGroove"><option value="drop">Drop</option><option value="build">Build</option><option value="break">Break</option><option value="intro">Intro</option></select>
       </label>
@@ -1680,6 +1683,7 @@ $('stdSheet').onclick=()=>{
 // /state → qué deck es master · /decks/{n} → frame con struct.current (Intro/Break/Buildup/Drop/Groove), beat.msToNextBar, beat.currentBpm
 const SK={timer:null,busy:false,ok:false,master:null,frame:null,detail:null,lastStruct:null,lastErr:''};
 S.sk=Object.assign({host:'192.168.68.51:8090',bpm:true,phrase:true,align:true,groove:'drop',autoplay:true},S.sk||{});
+if(S.sk.lead==null) S.sk.lead=40;
 // acepta "192.168.68.51", "192.168.68.51:8090" o "http://192.168.68.51:8090/live"
 function normHost(h){ h=String(h||'').trim().replace(/^https?:\/\//i,'').split('/')[0]; if(h&&!/:\d+$/.test(h)) h+=':8090'; return h; }
 // Puente: la app de escritorio sirve la página en http://localhost:8095; las lecturas pasan por /sk/… y el navegador no las bloquea
@@ -1788,16 +1792,21 @@ function liveFrame(m,f0){
 function alignToDeck(f,t0){
   if(!S.sk.align||!playing||ext||!(f['beat.msToNextBar']>=0)) return;
   if(f['playback.state']!=='playing') return;
-  const target=t0+f['beat.msToNextBar'];            // siguiente compás del CDJ (reloj local)
+  // siguiente compás del CDJ en el reloj local, adelantado lo que tarda la cadena MIDI → programa → DMX → luces
+  const target=t0+f['beat.msToNextBar']-(+S.sk.lead||0);
   const appDown=nextT+((16-step)%16)*stepMs();      // siguiente compás de la app
   let d=target-appDown, b=barMs();
   d=((d%b)+b+b/2)%b-b/2;                            // la diferencia más corta, dentro de ±medio compás
-  if(Math.abs(d)>25){ nextT+=d; }
+  // saltos grandes: de golpe; diferencias chicas: a medias, para no bailar con el ruido de la red
+  if(Math.abs(d)>=60) nextT+=d; else if(Math.abs(d)>6) nextT+=d/2;
 }
 async function skPoll(){
   if(SK.busy) return; SK.busy=true;
   try{
+    const tq=performance.now();
     const st=await skGet('state');
+    // momento (reloj local) en que ShowKontrol leyó la posición: la mitad del viaje de /state
+    let ts=(tq+performance.now())/2;
     const decks=(st.decks||[]).filter(d=>d.online&&d.n<=6);
     const run=d=>/playing|looping/.test(d.state||'');
     // el deck a seguir: el master si está sonando; si no, el que suena al aire; si nada suena, el master (solo para mostrar)
@@ -1805,13 +1814,18 @@ async function skPoll(){
     SK.master=m; SK.ok=true; SK.lastErr='';
     let f=null;
     if(m){
-      const t0=performance.now();
-      SK.detail=await skGet('decks/'+m.n,1500); f=SK.frame=liveFrame(m,SK.detail.frame||{});
-      const lat=(performance.now()-t0)/2;           // la mitad del viaje de ida y vuelta
+      // la info de la pista (estructura, grid) casi no cambia: se pide al cambiar de pista/deck o cada 2 s.
+      // Si /state no trae la posición, hace falta /decks/{n} en cada lectura y se toma su propio momento.
+      const dk=m.n+':'+m.rev, now0=performance.now();
+      if(m.posUS==null||!SK.detail||SK.detailKey!==dk||now0-SK.detailT>2000){
+        const t1=performance.now(); SK.detail=await skGet('decks/'+m.n,1500); SK.detailKey=dk; SK.detailT=performance.now();
+        if(m.posUS==null) ts=(t1+SK.detailT)/2;
+      }
+      f=SK.frame=liveFrame(m,SK.detail.frame||{}); SK.ts=ts;
       if(S.sk.bpm&&!ext){ const b=m.bpm||f['beat.currentBpm']; if(b>40&&Math.abs(b-S.bpm)>0.05) setBpm(Math.round(b*100)/100); }
-      alignToDeck(f,performance.now()-lat);
+      alignToDeck(f,ts);
       // ¿avanzó normal o el DJ saltó (cue, hot cue, beat jump, otra pista, otro deck)?
-      const now=performance.now(), pos=(m.posUS!=null?m.posUS:f['playback.positionUS']||0)/1000;
+      const now=ts, pos=(m.posUS!=null?m.posUS:f['playback.positionUS']||0)/1000;
       const deckKey=m.n+':'+m.rev, isRun=/playing|looping/.test(f['playback.state']||m.state||'');
       const expect=SK.lastPos!=null?SK.lastPos+(now-SK.lastPosT)*((m.speed||1)):null;
       const jumped=deckKey!==SK.deckKey||expect==null||Math.abs(pos-expect)>1500||!isRun;
@@ -1824,7 +1838,7 @@ async function skPoll(){
       if(S.sk.phrase&&isRun){
         if(jumped){ SK.lastStruct=curLbl; }   // salto: se adopta la nueva posición sin cambiar luces
         else {
-          const toDown=playing?(nextT+((16-step)%16)*stepMs())-performance.now():0, nIn=f['struct.nextInMs'];
+          const toDown=playing?(nextT+((16-step)%16)*stepMs())-performance.now():0, nIn=f['struct.nextInMs']>=0?f['struct.nextInMs']-(performance.now()-ts):-1;
           if(playing&&nxt&&nIn>=0&&nIn<=toDown+120){ if(longEnough(pos+nIn+10)){ SK.manual=false; followSection(nxt); } }
           else if(cur&&curLbl!==SK.lastStruct){ SK.lastStruct=curLbl;
             if(SK.manual&&curLbl===SK.manualStruct){} // sigue mandando tu elección
@@ -1858,7 +1872,7 @@ function renderSk(decks,f){
     c.appendChild(el('span','nm',line));
     g.appendChild(c); });
 }
-function skStart(){ skStop(); SK.lastStruct=null; $('skStatus').textContent='Conectando…'; skPoll(); SK.timer=setInterval(skPoll,200); $('skConnect').textContent='Desconectar'; S.sk.on=true; save(); }
+function skStart(){ skStop(); SK.lastStruct=null; SK.detail=null; SK.detailKey=null; $('skStatus').textContent='Conectando…'; skPoll(); SK.timer=setInterval(skPoll,100); $('skConnect').textContent='Desconectar'; S.sk.on=true; save(); }
 // ---------- progreso del deck master (pista completa con tramos + sección actual en compases) ----------
 // Todo sale de la estructura de ShowKontrol (/decks/{n}) y de la posición en vivo de /state; entre lecturas se interpola.
 const SP={on:false,key:'',segs:[],dur:0,pos:0,t:0,speed:0,run:false,title:'',deck:0,tb:0,off:0,p0:0,raf:0,ci:-2,secKey:''};
@@ -1868,7 +1882,7 @@ function skProgData(m,f){
   const st=n(f['struct.starts']), en=n(f['struct.ends']), lb=String(f['struct.labels']||'').split('|');
   const segs=st.map((a,i)=>({s:a,e:en[i]!=null?en[i]:a,label:lb[i]||'',sec:structToSec(lb[i])})).filter(x=>x.e>x.s).sort((a,b)=>a.s-b.s);
   SP.dur=(f['metadata.durationUS']||0)/1000||Math.max(1,...segs.map(x=>x.e));
-  SP.pos=(m.posUS!=null?m.posUS:f['playback.positionUS']||0)/1000; SP.t=performance.now();
+  SP.pos=(m.posUS!=null?m.posUS:f['playback.positionUS']||0)/1000; SP.t=SK.ts||performance.now();
   SP.speed=(m.speed!=null?m.speed:f['beat.playSpeed'])||0; SP.run=/playing|looping/.test(f['playback.state']||m.state||'');
   SP.title=f['metadata.title']||m.title||''; SP.deck=m.n;
   // grid de la pista (BPM original), igual que liveFrame: el compás 1 es el inicio de la primera frase
@@ -1939,6 +1953,7 @@ $('skScan').onclick=skScan;
 $('skBpm').onchange=e=>{ S.sk.bpm=e.target.checked; save(); };
 $('skPhrase').onchange=e=>{ S.sk.phrase=e.target.checked; SK.lastStruct=null; save(); };
 $('skAlign').onchange=e=>{ S.sk.align=e.target.checked; save(); };
+$('skLead').value=S.sk.lead; $('skLead').onchange=e=>{ S.sk.lead=Math.max(0,Math.min(250,Math.round(+e.target.value||0))); e.target.value=S.sk.lead; save(); };
 $('skGroove').onchange=e=>{ S.sk.groove=e.target.value; SK.lastStruct=null; save(); };
 $('skConnect').onclick=async()=>{ if(SK.timer){ skStop(); return; } if(await skTest()) skStart(); };
 $('skCopy').onclick=()=>{ const txt=JSON.stringify({master:SK.master,detail:SK.detail},null,1); try{ navigator.clipboard.writeText(txt); $('skCopy').textContent='Copiado ✓'; }catch(e){ $('skCopy').textContent='No se pudo copiar'; } setTimeout(()=>$('skCopy').textContent='Copiar datos del deck master',1500); };
