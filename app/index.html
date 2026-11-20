@@ -242,6 +242,13 @@ label.f.inline{flex-direction:row;align-items:center;gap:8px}
 /* grilla de golpes = pads con LED */
 .gridwrap{overflow-x:auto;background:var(--chassis);border-radius:18px;padding:14px;border:1px solid var(--chassisEdge);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
 .grid{display:grid;grid-template-columns:200px 72px repeat(16,minmax(30px,1fr));gap:5px;align-items:center;min-width:920px}
+.faders{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.fdrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:8px 0}
+.fdname{display:flex;flex-direction:column;gap:2px;min-width:220px;flex:1}
+.fdname small{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.fdrow input{width:80px}
+.fdval{font-family:var(--mono);font-size:13px;min-width:110px;padding-bottom:8px;color:var(--muted)}
+.fdval.man{color:var(--orange)}
 .gh{font-family:var(--mono);font-size:10px;color:#7d818b;letter-spacing:.08em;text-align:center}
 .gh.l{text-align:left} .gh.now{color:var(--orange)}
 .grid select{background:#0e0f12;color:#e9eaee;border-color:#2c2e34}
@@ -737,6 +744,7 @@ details.panel>summary::-webkit-details-marker{display:none}
     </div>
     <h3>Golpes al ritmo</h3>
     <div class="gridwrap"><div class="grid" id="grid"></div></div>
+    <div class="faders" id="faders" hidden></div>
     <div class="tools">
       <button id="clearSec">Borrar golpes de esta sección</button>
       <button id="exportBtn">Exportar show (.json)</button>
@@ -1050,6 +1058,63 @@ function hit(name,t){
   if(c.mode==='toggle'){ tap1(c,t); tap1(c,t+Math.max(g,60)); }
   else { on(c,t); off(c,t+g); }
 }
+// ---------- FADERS EN VIVO (semiautomáticos) ----------
+// Se leen del proyecto de Pro DMX: controles de escena asignados a un CC (LPLiveTiggers, p. ej. LPLTSpeed = velocidad).
+// En cada sección el fader va de "inicio %" a "fin %" a lo largo de la sección (fijo si son iguales; vacío = no lo toca).
+// Si lo mueves a mano en el APC (pasando por la app), la app lo deja en tu valor hasta la siguiente sección.
+const FD_PARAM={Speed:'velocidad',Dimmer:'dimmer',Fade:'fade'};
+const fdKey=f=>f.ch+':'+f.cc;
+S.faders=S.faders||{};
+const FD_DEF=()=>({intro:{a:null,b:null},build:{a:30,b:100},drop:{a:100,b:100},break:{a:null,b:null}});
+function fdList(){ const seen={}; return (S.importLive||[]).filter(f=>{ const k=fdKey(f); if(seen[k]){ seen[k].scenes.push(f.scene); return false; } seen[k]=f; f.scenes=[f.scene]; return true; }); }
+function fdCfg(f){ const k=fdKey(f); if(!S.faders[k]) S.faders[k]=FD_DEF(); return S.faders[k]; }
+const FD={};   // estado en vivo por ch:cc → {sent, manual (sección donde lo moviste), sec}
+function fdSecKey(){ return isPart(live)?stdKey(live):live; }
+function fdProgress(){
+  if(skFollowing()&&SP.on&&SP.segs&&SP.segs.length){
+    const pos=SP.pos+(SP.run?(performance.now()-SP.t)*(SP.speed||1):0), sg=SP.segs.find(x=>pos>=x.s&&pos<x.e);
+    if(sg) return Math.max(0,Math.min(1,(pos-sg.s)/(sg.e-sg.s)));
+  }
+  const L=lenOf(live)||16; return Math.max(0,Math.min(1,(Math.max(1,barsInSec)-1+step/16)/L));
+}
+function faderTick(t){
+  if(venueOnly()) return;
+  const sk=fdSecKey(), p=fdProgress();
+  fdList().forEach(f=>{
+    const k=fdKey(f), st=FD[k]=FD[k]||{}, c=(fdCfg(f)[sk])||{};
+    if(st.sec!==sk){ st.sec=sk; st.manual=null; }
+    if(st.manual===sk||c.a==null) return;
+    const b=c.b==null?c.a:c.b, pct=c.a+(b-c.a)*p, v=Math.round(f.min+(f.max-f.min)*Math.max(0,Math.min(100,pct))/100);
+    if(v===st.sent) return;
+    st.sent=v; send([0xB0|(f.ch-1),f.cc,v],t); fdPaint();
+  });
+}
+function fdManual(ch,cc,v){
+  const f=fdList().find(x=>x.ch===ch&&x.cc===cc); if(!f) return;
+  const st=FD[fdKey(f)]=FD[fdKey(f)]||{}; st.manual=fdSecKey(); st.sec=st.manual; st.sent=v; fdPaint();
+}
+let fdPending=false;
+function fdPaint(){ if(fdPending) return; fdPending=true; requestAnimationFrame(()=>{ fdPending=false;
+  fdList().forEach(f=>{ const e=document.getElementById('fdv_'+fdKey(f).replace(':','_')); if(!e) return; const st=FD[fdKey(f)]||{};
+    e.textContent=st.sent==null?'—':Math.round((st.sent-f.min)/((f.max-f.min)||1)*100)+' %'+(st.manual&&st.manual===fdSecKey()?' · manual':''); e.classList.toggle('man',!!(st.manual&&st.manual===fdSecKey())); }); }); }
+function renderFaders(){
+  const box=$('faders'); if(!box) return; box.innerHTML='';
+  const list=fdList(), sk=edit.song?null:view;
+  if(!list.length||!sk||!SECS.includes(sk)){ box.hidden=true; return; } box.hidden=false;
+  box.appendChild(el('h3','ptitle','Faders en vivo · '+SLABEL[sk]));
+  box.appendChild(el('p','psub','La app mueve el fader de inicio a fin durante la sección. Vacío = no lo toca. Si lo mueves en el APC (pasando por la app), respeta tu valor hasta la siguiente sección.'));
+  list.forEach(f=>{
+    const c=fdCfg(f)[sk]=fdCfg(f)[sk]||{a:null,b:null}, r=el('div','fdrow');
+    const nm=el('div','fdname'); nm.appendChild(el('b',null,f.scenes.join(', ')+' · '+(FD_PARAM[f.param]||f.param)));
+    nm.appendChild(el('small',null,'CC '+f.cc+' · canal '+f.ch)); r.appendChild(nm);
+    const num=(lbl,key)=>{ const l=el('label','f',lbl), i=document.createElement('input'); i.type='number'; i.min=0; i.max=100; i.placeholder='—'; i.value=c[key]==null?'':c[key];
+      i.onchange=()=>{ const v=i.value.trim(); c[key]=v===''?null:Math.max(0,Math.min(100,+v||0)); save(); }; l.appendChild(i); return l; };
+    r.appendChild(num('Inicio %','a')); r.appendChild(num('Fin %','b'));
+    const v=el('span','fdval','—'); v.id='fdv_'+fdKey(f).replace(':','_'); r.appendChild(v);
+    box.appendChild(r);
+  });
+  fdPaint();
+}
 // señal estándar: una nota por sección en su propio canal
 let curStd=null;
 const stdNote=k=>({ch:S.std.ch,note:S.std.notes[k]});
@@ -1120,6 +1185,7 @@ function fire(t){
   S.hitRows.forEach((name,i)=>{ if(sec.hits[i]&&sec.hits[i][step]){ hit(name,t); fired.push(i);} });
   const s=step,b=bar,sn=live;
   setTimeout(()=>paint(s,fired,b,sn),Math.max(0,t-performance.now()));
+  faderTick(t);
   step=(step+1)%16;
 }
 // beat jump: mueve la posición del show N compases (en automático cambia de sección al pasarse)
@@ -1191,6 +1257,7 @@ function onThru(ev){
   if(d[0]>=0xF8) return;
   send(d);
   const type=d[0]&0xF0, ch=(d[0]&0x0F)+1;
+  if(type===0xB0){ fdManual(ch,d[1],d[2]); return; }
   if(type!==0x90&&type!==0x80) return;
   const pressed=type===0x90&&d[2]>0;
   S.cat.filter(c=>c.ch===ch&&c.note===d[1]).forEach(c=>{
@@ -1314,7 +1381,7 @@ function renderEditor(){
   if(edit.song){ const s=songById(edit.song), pt=edObj();
     ed.style.setProperty('--led',PART_LEDS[pt.color||0]); $('edTitle').textContent=pt.name; $('edSub').textContent='· '+(s?s.name:''); }
   else { ed.style.setProperty('--led',LED[view]); $('edTitle').textContent=SLABEL[view]; $('edSub').textContent='en escena'; }
-  renderChips(); renderGrid();
+  renderChips(); renderGrid(); renderFaders();
 }
 function sceneSelect(val,onchange){
   const s=document.createElement('select');
@@ -1896,7 +1963,7 @@ async function readProDmx(file){
   return doc;
 }
 function buildCatalog(doc){
-  const out=[], used=new Set(), byNote={};
+  const out=[], used=new Set(), byNote={}, live=[];
   const pages=[...doc.getElementsByTagName('LPPage')];
   pages.forEach(pg=>{ const pn=(pg.getAttribute('LPName')||'').trim();
     [...pg.getElementsByTagName('LPScene')].forEach(sc=>{
@@ -1907,6 +1974,10 @@ function buildCatalog(doc){
       const ly=layerOf(name), tg=tagsOf(name), rec={name,page:pn,mode:flash?'flash':'toggle',cat:ly||(tg.has('color')?'color':guessCat(stripTags(name)))};
       if(f[0]==='1'&&f.length>2){ rec.ch=(+f[1]||0)+1; rec.note=+f[2]; rec.onRelease=f[5]==='1'; } else rec.pending=true;
       out.push(rec);
+      // controles en vivo asignados a un CC (p. ej. <LPLTSpeed LPMidiTrigger="2|0|48|0|127|0"> = velocidad en CC 48, canal 1)
+      const lt=sc.getElementsByTagName('LPLiveTiggers')[0];
+      if(lt) [...lt.children].forEach(x=>{ const g=(x.getAttribute('LPMidiTrigger')||'').split('|'); if(g[0]!=='2'||g.length<3) return;
+        live.push({scene:name,param:x.tagName.replace(/^LPLT/,''),ch:(+g[1]||0)+1,cc:+g[2],min:g[3]!=null&&g[3]!==''?+g[3]:0,max:g[4]!=null&&g[4]!==''?+g[4]:127}); });
     });
   });
   // pestaña principal = la que tiene más escenas con MIDI
@@ -1936,7 +2007,7 @@ function buildCatalog(doc){
     // a las escenas sin MIDI les toca una nota libre del canal 2 (para asignarla en Pro DMX con Probar)
     let n=0; cat.filter(c=>c.pending).forEach(c=>{ while(used.has('2:'+n)&&n<127) n++; c.ch=2; c.note=Math.min(127,n); used.add('2:'+n); n++; });
   }
-  cat.mainPage=mainPage; cat.skipped=skipped; cat.layered=layered;
+  cat.mainPage=mainPage; cat.skipped=skipped; cat.layered=layered; cat.live=live;
   return cat;
 }
 // ---------- programación adaptativa ----------
@@ -2014,7 +2085,7 @@ $('pdFile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if
   try{
     const doc=await readProDmx(f), cat=buildCatalog(doc);
     if(!cat.length) throw new Error('No encontré escenas en el archivo.');
-    S.importCat=cat; S.importName=f.name; S.importUseNames=$('pdSections').checked;
+    S.importCat=cat; S.importName=f.name; S.importUseNames=$('pdSections').checked; S.importLive=cat.live||[];
     setVersion('import');
     const bt=autoShow(S.cat,GENRES[S.genre],S.importUseNames).byTag;
     const sec=SECS.map(k=>SLABEL[k]+': '+(bt[k]?bt[k]+' por etiqueta':'automático')).join(' · ');
