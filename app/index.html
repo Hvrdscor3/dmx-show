@@ -260,6 +260,10 @@ label.f.inline{flex-direction:row;align-items:center;gap:8px}
 .gh{font-family:var(--mono);font-size:10px;color:#7d818b;letter-spacing:.08em;text-align:center}
 .gh.l{text-align:left} .gh.now{color:var(--orange)}
 .grid select{background:#0e0f12;color:#e9eaee;border-color:#2c2e34}
+.hitsel{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hitsel select{width:100%;min-width:0}
+.hitsel .hitrate{font-size:11px;padding:2px 6px;color:#aab3cc}
+.hitsel.none select:first-child{color:#7c8399;font-style:italic}
 .lamp{padding:7px 0;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(180deg,#4a4b50,#2b2c30);color:#e9eaee;border:1px solid #0b0b0c;border-radius:7px}
 .lamp:hover{border-color:#0b0b0c;filter:brightness(1.1)}
 .lamp.fire{background:var(--led);color:#06120c;box-shadow:0 0 12px var(--led)}
@@ -1195,7 +1199,7 @@ function fire(t){
     if((barsInSec-1)%ev===0 && barsInSec>1) rotateColor(t);
   }
   const sec=obj(live)||{hits:[]}, fired=[];
-  S.hitRows.forEach((name,i)=>{ if(sec.hits[i]&&sec.hits[i][step]){ hit(name,t); fired.push(i);} });
+  rowsOf(sec).forEach((name,i)=>{ if(name&&sec.hits[i]&&sec.hits[i][step]&&rateOk(sec,i)){ hit(name,t); fired.push(i);} });
   const s=step,b=bar,sn=live;
   setTimeout(()=>paint(s,fired,b,sn),Math.max(0,t-performance.now()));
   faderTick(t);
@@ -1406,8 +1410,9 @@ function renderEditor(){
   renderEdTabs();
   renderChips(); renderGrid(); renderFaders();
 }
-function sceneSelect(val,onchange){
+function sceneSelect(val,onchange,allowNone){
   const s=document.createElement('select');
+  if(allowNone) s.add(new Option('— ninguno —',''));
   Object.keys(CATS).forEach(k=>{
     const og=document.createElement('optgroup'); og.label=CATS[k];
     S.cat.filter(c=>c.cat===k).forEach(c=>og.appendChild(new Option(c.name+(c.mode==='flash'?' · flash':''),c.name)));
@@ -1415,16 +1420,26 @@ function sceneSelect(val,onchange){
   });
   s.value=val; s.onchange=()=>onchange(s.value); return s;
 }
+// golpes/FX: cada sección puede tener sus propias escenas (o ninguna) y usarlas solo cada N compases
+const rowsOf=sec=>S.hitRows.map((n,i)=>(sec&&Array.isArray(sec.rows)&&sec.rows[i]!=null)?sec.rows[i]:n);
+const rateOf=(sec,i)=>+(sec&&sec.rate&&sec.rate[i])||1;
+const rateOk=(sec,i)=>{ const r=rateOf(sec,i); return r===1||(Math.max(1,barsInSec)-1)%r===r-1; };
+const RATES=[[1,'siempre'],[2,'1 de cada 2 comp.'],[4,'1 de cada 4 comp.'],[8,'1 de cada 8 comp.']];
 function renderGrid(){
   const g=$('grid'); g.innerHTML=''; cells=[]; lamps=[]; heads=[];
   const h=(t,cls)=>{const d=document.createElement('div');d.className='gh '+(cls||'');d.textContent=t;g.appendChild(d);return d;};
-  h('Escena','l'); h('');
+  h('Escena · cuándo','l'); h('');
   for(let j=0;j<16;j++) heads.push(h(j%4===0?String(j/4+1):'·'));
-  const sec=edObj();
-  S.hitRows.forEach((name,i)=>{
-    const sel=sceneSelect(name,v=>{S.hitRows[i]=v; save();}); sel.id='hit_'+i; g.appendChild(sel);
-    const lp=document.createElement('button'); lp.className='lamp'; lp.textContent='Probar';
-    lp.onclick=()=>{ hit(S.hitRows[i],performance.now()); lp.classList.add('fire'); setTimeout(()=>lp.classList.remove('fire'),150); };
+  const sec=edObj(), rows=rowsOf(sec);
+  rows.forEach((name,i)=>{
+    const wrap=el('div','hitsel');
+    const sel=sceneSelect(name,v=>{ if(!Array.isArray(sec.rows)) sec.rows=S.hitRows.slice(); sec.rows[i]=v; save(); renderGrid(); },true); sel.id='hit_'+i; wrap.appendChild(sel);
+    const rt=document.createElement('select'); rt.className='hitrate'; RATES.forEach(([v,l])=>rt.add(new Option(l,String(v)))); rt.value=String(rateOf(sec,i));
+    rt.title='En esta sección, cada cuánto se usa este FX'; rt.onchange=()=>{ if(!Array.isArray(sec.rate)) sec.rate=[1,1,1,1]; sec.rate[i]=+rt.value; save(); };
+    wrap.appendChild(rt); g.appendChild(wrap);
+    if(!name) wrap.classList.add('none');
+    const lp=document.createElement('button'); lp.className='lamp'; lp.textContent='Probar'; lp.disabled=!name;
+    lp.onclick=()=>{ const n=rowsOf(sec)[i]; if(!n) return; hit(n,performance.now()); lp.classList.add('fire'); setTimeout(()=>lp.classList.remove('fire'),150); };
     g.appendChild(lp); lamps.push(lp);
     if(!sec.hits[i]) sec.hits[i]=Array(16).fill(false);
     const row=[];
@@ -1444,8 +1459,8 @@ function renderCat(){
     const td=()=>{const d=document.createElement('td');tr.appendChild(d);return d;};
     const nm=document.createElement('input'); nm.type='text'; nm.value=c.name; nm.id='cat_name_'+i;
     nm.onchange=()=>{ const old=c.name, nv=nm.value.trim()||old; c.name=nv;
-      SECS.forEach(s=>{const x=S.show[s]; x.fixed=x.fixed.map(n=>n===old?nv:n); x.colors=x.colors.map(n=>n===old?nv:n);});
-      S.songs.forEach(sg=>sg.parts.forEach(x=>{ x.fixed=x.fixed.map(n=>n===old?nv:n); x.colors=x.colors.map(n=>n===old?nv:n); }));
+      SECS.forEach(s=>{const x=S.show[s]; x.fixed=x.fixed.map(n=>n===old?nv:n); x.colors=x.colors.map(n=>n===old?nv:n); if(Array.isArray(x.rows)) x.rows=x.rows.map(n=>n===old?nv:n);});
+      S.songs.forEach(sg=>sg.parts.forEach(x=>{ x.fixed=x.fixed.map(n=>n===old?nv:n); x.colors=x.colors.map(n=>n===old?nv:n); if(Array.isArray(x.rows)) x.rows=x.rows.map(n=>n===old?nv:n); }));
       S.hitRows=S.hitRows.map(n=>n===old?nv:n); save(); renderEditor(); };
     td().appendChild(nm);
     const ct=document.createElement('select'); Object.entries(CATS).forEach(([k,v])=>ct.add(new Option(v,k))); ct.value=c.cat;
