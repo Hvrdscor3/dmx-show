@@ -198,6 +198,22 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 /* ---------- editor ---------- */
 #editor{--led:var(--led-intro)}
 .edhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:4px}
+/* control con las manos */
+#manos .hd-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;margin:12px 0}
+@media (max-width:860px){#manos .hd-grid{grid-template-columns:1fr}}
+.hd-view{position:relative;background:#0b0c10;border-radius:12px;overflow:hidden;aspect-ratio:16/9}
+.hd-view video,.hd-view canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.hd-view.mirror video,.hd-view.mirror canvas{transform:scaleX(-1)}
+.hd-read{position:absolute;left:10px;right:10px;bottom:8px;font:12px/1.5 'IBM Plex Mono',monospace;color:#e9eaee;text-shadow:0 1px 3px #000;pointer-events:none;white-space:pre-wrap}
+.hd-rows{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.hd-row{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;background:var(--ice2);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:13px}
+.hd-row label{display:inline-flex;align-items:center;gap:4px}
+.hd-row input[type=number]{width:58px}
+.hd-row .meter{flex:1;min-width:70px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.hd-row .meter i{display:block;height:100%;width:0;background:var(--okc)}
+.hd-row .x{margin-left:auto}
+.hd-row.fire{outline:2px solid var(--hot)}
+.hd-secs{display:inline-flex;gap:10px;flex-wrap:wrap;margin-left:6px}
 .edtabs{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;align-self:center}
 .edtabs button{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .edtabs button i{width:8px;height:8px;border-radius:50%;background:var(--c)}
@@ -612,7 +628,7 @@ details.panel>summary::-webkit-details-marker{display:none}
   <main class="screen" id="scr-main" data-screen="main">
 
   <nav class="jump" aria-label="Secciones de la app">
-    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
+    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#manos">Manos</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
     <span class="dockctl"><button id="dockReset" hidden>Restablecer</button><button id="dockEdit" title="Cambiar el orden de las secciones de la página">⇅ Ordenar</button></span>
   </nav>
 
@@ -837,6 +853,39 @@ details.panel>summary::-webkit-details-marker{display:none}
       <div class="vernote" id="rmNote"></div>
     </section>
   </div>
+
+  <section class="panel" id="manos">
+    <div class="songs-head">
+      <div>
+        <span class="lbl"><i class="flag"></i>Control con las manos</span>
+        <p class="big-serif">Mueve las luces con las manos.</p>
+        <p class="psub">Usa cualquier cámara de la PC, también el iPhone con Iriun Webcam. La detección corre en esta PC, sin internet.</p>
+      </div>
+    </div>
+    <div class="row hd-top">
+      <label class="f">Cámara <select id="hdCam"></select></label>
+      <button id="hdOn">Activar</button>
+      <label class="rmchk"><input type="checkbox" id="hdMirror"> Espejo (como selfie)</label>
+      <label class="rmchk"><input type="checkbox" id="hdSwap"> Intercambiar manos</label>
+    </div>
+    <div class="vernote" id="hdNote"></div>
+    <div class="hd-grid">
+      <div class="hd-view" id="hdView"><video id="hdVid" playsinline muted></video><canvas id="hdCv"></canvas><div class="hd-read" id="hdRead"></div></div>
+      <div class="hd-cfg">
+        <h3 class="ptitle">Ajustes</h3>
+        <label class="f">Suavizado <input type="range" id="hdSmooth" min="0" max="90" step="5"></label>
+        <label class="f">Margen de la zona activa <input type="range" id="hdZone" min="0" max="30" step="1"></label>
+        <div class="f">Activo en <span class="hd-secs" id="hdSecs"></span></div>
+        <p class="psub">Fuera de la zona punteada el valor se queda en el borde. En las secciones apagadas no manda nada.</p>
+      </div>
+    </div>
+    <h3 class="ptitle">Movimientos → faders (CC)</h3>
+    <div class="hd-rows" id="hdMaps"></div>
+    <button id="hdAddMap">+ Agregar movimiento</button>
+    <h3 class="ptitle">Gestos → escenas</h3>
+    <div class="hd-rows" id="hdGest"></div>
+    <button id="hdAddGest">+ Agregar gesto</button>
+  </section>
 
   <section class="panel" id="stdPanel">
     <div class="songs-head">
@@ -2357,6 +2406,157 @@ $('rmOn').onchange=e=>{ S.remote.on=e.target.checked; RM.err=''; save(); S.remot
 $('rmKey').onclick=()=>{ S.remote.key=rmNewKey(); save(); if(S.remote.on) rmStart(); else renderRm(); };
 setInterval(rmPush,250);
 if(S.remote.on) rmStart(); else renderRm();
+// ================= CONTROL CON LAS MANOS (cámara + MediaPipe, todo en esta PC) =================
+const HD_SRC={'R.x':'Mano derecha · izquierda ↔ derecha','R.y':'Mano derecha · abajo ↕ arriba','R.open':'Mano derecha · cerrar ↔ abrir',
+  'L.x':'Mano izquierda · izquierda ↔ derecha','L.y':'Mano izquierda · abajo ↕ arriba','L.open':'Mano izquierda · cerrar ↔ abrir',
+  'any.x':'Cualquier mano · izquierda ↔ derecha','any.y':'Cualquier mano · abajo ↕ arriba'};
+const HD_GEST={Closed_Fist:'Puño ✊',Open_Palm:'Mano abierta ✋',Pointing_Up:'Apuntar arriba ☝',Thumb_Up:'Pulgar arriba 👍',Thumb_Down:'Pulgar abajo 👎',Victory:'Victoria ✌',ILoveYou:'Rock 🤟'};
+const HD_DEF=()=>({dev:'',mirror:true,swap:false,smooth:50,zone:10,secs:{intro:true,build:true,drop:true,break:true},
+  maps:[{src:'R.x',ch:1,cc:49,min:0,max:127,inv:false},{src:'R.y',ch:1,cc:50,min:0,max:127,inv:false}],
+  gest:[{g:'Closed_Fist',hand:'any',scene:'',mode:'hold'}]});
+S.hands=Object.assign(HD_DEF(),S.hands||{});
+const HD={on:false,stream:null,rec:null,raf:0,lastT:-1,val:{},sent:{},gest:{},cand:{},seen:{}};
+const HD_LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const hdNote=t=>{ $('hdNote').textContent=t; };
+const hdSecOk=()=>S.hands.secs[fdSecKey()]!==false;
+const hdClamp=v=>Math.max(0,Math.min(1,v));
+// posición dentro de la zona activa → 0..1 (derecha y arriba = más)
+function hdAxis(v,isX){ const z=S.hands.zone/100, t=hdClamp((v-z)/(1-2*z||1)); return isX?(S.hands.mirror?1-t:t):1-t; }
+// mano cerrada (0) ↔ abierta (1): distancia de las puntas a la muñeca comparada con el tamaño de la palma
+function hdOpen(lm){ const d=(a,b)=>Math.hypot(lm[a].x-lm[b].x,lm[a].y-lm[b].y), palm=d(0,9)||1e-3;
+  const r=[8,12,16,20].reduce((s,i)=>s+d(0,i),0)/4/palm; return hdClamp((r-1.0)/0.9); }
+async function hdLoad(){
+  if(HD.rec) return HD.rec;
+  const base=new URL('vendor/mediapipe/',location.href).href;
+  const mp=await import(base+'vision_bundle.mjs');
+  const fs=await mp.FilesetResolver.forVisionTasks(base+'wasm');
+  const mk=d=>mp.GestureRecognizer.createFromOptions(fs,{baseOptions:{modelAssetPath:base+'gesture_recognizer.task',delegate:d},runningMode:'VIDEO',numHands:2});
+  try{ HD.rec=await mk('GPU'); }catch(e){ HD.rec=await mk('CPU'); }
+  return HD.rec;
+}
+async function hdCams(){
+  const sel=$('hdCam'); let ds=[];
+  try{ ds=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput'); }catch(e){}
+  sel.innerHTML=''; if(!ds.length){ sel.add(new Option('(sin cámaras)','')); return; }
+  ds.forEach((d,i)=>sel.add(new Option(d.label||('Cámara '+(i+1)),d.deviceId)));
+  if(S.hands.dev&&ds.some(d=>d.deviceId===S.hands.dev)) sel.value=S.hands.dev;
+  else { const ir=ds.find(d=>/iriun/i.test(d.label)); if(ir) sel.value=ir.deviceId; }
+}
+async function hdStart(){
+  if(!navigator.mediaDevices){ hdNote('Esta versión no puede usar la cámara.'); return; }
+  hdNote('Abriendo la cámara…'); $('hdOn').textContent='Detener';
+  try{
+    const dev=$('hdCam').value;
+    HD.stream=await navigator.mediaDevices.getUserMedia({audio:false,video:Object.assign({width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},dev?{deviceId:{exact:dev}}:{})});
+    const v=$('hdVid'); v.srcObject=HD.stream; await v.play();
+    const tr=HD.stream.getVideoTracks()[0], id=tr&&tr.getSettings().deviceId;
+    await hdCams(); if(id){ S.hands.dev=id; $('hdCam').value=id; save(); }
+    hdNote('Cargando la detección de manos (la primera vez tarda unos segundos)…');
+    await hdLoad(); if(!HD.stream) return;
+    HD.on=true; HD.lastT=-1; HD.val={}; HD.sent={}; hdNote('');
+    HD.raf=requestAnimationFrame(hdLoop);
+  }catch(e){ hdStop(); hdNote('No pude abrir la cámara ('+((e&&e.message)||e)+'). Revisa que Iriun esté abierto en el iPhone y en la PC, o elige otra cámara.'); }
+}
+function hdStop(){
+  HD.on=false; cancelAnimationFrame(HD.raf);
+  if(HD.stream){ HD.stream.getTracks().forEach(t=>t.stop()); HD.stream=null; }
+  $('hdVid').srcObject=null;
+  S.hands.gest.forEach((g,i)=>{ if(HD.gest[i]) hdGestFire(g,false,true); HD.gest[i]=false; HD.cand[i]=0; });  // suelta lo sostenido
+  $('hdOn').textContent='Activar'; const cv=$('hdCv'); cv.getContext('2d').clearRect(0,0,cv.width,cv.height); $('hdRead').textContent='';
+  document.querySelectorAll('#manos .hd-row.fire').forEach(r=>r.classList.remove('fire'));
+}
+function hdLoop(){
+  if(!HD.on) return; HD.raf=requestAnimationFrame(hdLoop);
+  const v=$('hdVid'); if(!v.videoWidth||v.currentTime===HD.lastT) return; HD.lastT=v.currentTime;
+  let r; try{ r=HD.rec.recognizeForVideo(v,performance.now()); }catch(e){ return; }
+  // MediaPipe nombra la mano como si la imagen fuera selfie; con la imagen directa de la cámara "Left" es tu derecha
+  const hands=(r.landmarks||[]).map((lm,i)=>{
+    let side=(((r.handedness||[])[i]||[])[0]||{}).categoryName==='Left'?'R':'L'; if(S.hands.swap) side=side==='R'?'L':'R';
+    const g=((r.gestures||[])[i]||[])[0];
+    return {lm,side,g:g&&g.score>0.55?g.categoryName:'None',x:hdAxis(lm[9].x,true),y:hdAxis(lm[9].y,false),open:hdOpen(lm)};
+  });
+  hdDraw(v,hands); hdApply(hands);
+}
+function hdDraw(v,hands){
+  const cv=$('hdCv'); if(cv.width!==v.videoWidth||cv.height!==v.videoHeight){ cv.width=v.videoWidth; cv.height=v.videoHeight; }
+  const c=cv.getContext('2d'), W=cv.width, H=cv.height, z=S.hands.zone/100; c.clearRect(0,0,W,H);
+  c.setLineDash([10,8]); c.strokeStyle='rgba(255,255,255,.4)'; c.lineWidth=2; c.strokeRect(z*W,z*H,(1-2*z)*W,(1-2*z)*H); c.setLineDash([]);
+  hands.forEach(h=>{ const col=h.side==='R'?'#2fcf7a':'#22d3ee'; c.strokeStyle=col; c.fillStyle=col; c.lineWidth=3;
+    HD_LINKS.forEach(([a,b])=>{ c.beginPath(); c.moveTo(h.lm[a].x*W,h.lm[a].y*H); c.lineTo(h.lm[b].x*W,h.lm[b].y*H); c.stroke(); });
+    h.lm.forEach(p=>{ c.beginPath(); c.arc(p.x*W,p.y*H,4,0,7); c.fill(); }); });
+}
+function hdApply(hands){
+  const ok=hdSecOk(), now=performance.now(), a=1-Math.min(0.9,S.hands.smooth/100), out=[];
+  const pick=src=>{ const [h,k]=src.split('.'); const H=h==='any'?hands[0]:hands.find(x=>x.side===h); return H?H[k]:null; };
+  S.hands.maps.forEach((m,i)=>{
+    const bar=document.querySelector('#hdMaps .hd-row[data-i="'+i+'"] .meter i');
+    let t=pick(m.src); if(t==null){ HD.val[i]=null; if(bar) bar.style.opacity=.3; return; }   // sin mano: se queda donde estaba
+    if(m.inv) t=1-t;
+    HD.val[i]=HD.val[i]==null?t:HD.val[i]+(t-HD.val[i])*a;
+    const v=Math.max(0,Math.min(127,Math.round(m.min+(m.max-m.min)*HD.val[i]))), ch=Math.max(1,Math.min(16,m.ch|0)), cc=m.cc&127;
+    if(bar){ bar.style.opacity=ok?1:.3; bar.style.width=(HD.val[i]*100)+'%'; }
+    if(ok&&v!==HD.sent[i]){ HD.sent[i]=v; send([0xB0|(ch-1),cc,v]); fdManual(ch,cc,v); }
+    out.push('CC '+cc+': '+v);
+  });
+  // un gesto cuenta si se sostiene 1/4 de segundo; se suelta cuando deja de verse por 0.3 s
+  S.hands.gest.forEach((g,i)=>{
+    const hit=hands.some(h=>h.g===g.g&&(g.hand==='any'||h.side===g.hand));
+    if(hit){ HD.seen[i]=now; if(!HD.cand[i]) HD.cand[i]=now; } else if(now-(HD.seen[i]||0)>300) HD.cand[i]=0;
+    const act=!!HD.cand[i]&&now-HD.cand[i]>=250;
+    if(act!==!!HD.gest[i]){ HD.gest[i]=act; hdGestFire(g,act,ok); const r=document.querySelector('#hdGest .hd-row[data-i="'+i+'"]'); if(r) r.classList.toggle('fire',act); }
+  });
+  $('hdRead').textContent=(hands.length?hands.map(h=>(h.side==='R'?'Derecha':'Izquierda')+': '+(HD_GEST[h.g]||'—')).join('   '):'Sin manos a la vista')
+    +(ok?'':'   · pausado en esta sección')+(out.length?'\n'+out.join('   '):'');
+}
+function hdGestFire(g,act,ok){
+  if(!g.scene) return; const t=performance.now();
+  if(g.mode==='hold'){ if(act&&!ok) return; setScene(g.scene,act,t); }
+  else if(act&&ok) setScene(g.scene,!lit.has(g.scene),t);
+  queueUi();
+}
+function renderHands(){
+  const H=S.hands;
+  $('hdMirror').checked=!!H.mirror; $('hdSwap').checked=!!H.swap; $('hdSmooth').value=H.smooth; $('hdZone').value=H.zone;
+  $('hdView').classList.toggle('mirror',!!H.mirror);
+  const sb=$('hdSecs'); sb.innerHTML='';
+  SECS.forEach(k=>{ const l=el('label','rmchk'), c=document.createElement('input'); c.type='checkbox'; c.checked=H.secs[k]!==false;
+    c.onchange=()=>{ H.secs[k]=c.checked; save(); }; l.appendChild(c); l.appendChild(document.createTextNode(' '+SLABEL[k])); sb.appendChild(l); });
+  const num=(r,lbl,val,mn,mx,set)=>{ const l=el('label',null,lbl+' '), n=document.createElement('input'); n.type='number'; n.min=mn; n.max=mx; n.value=val;
+    n.onchange=()=>{ const v=Math.max(mn,Math.min(mx,Math.round(+n.value||0))); n.value=v; set(v); HD.sent={}; save(); }; l.appendChild(n); r.appendChild(l); };
+  const del=(r,list,i)=>{ const x=el('button','x','Quitar'); x.onclick=()=>{ list.splice(i,1); HD.val={}; HD.sent={}; HD.gest={}; HD.cand={}; save(); renderHands(); }; r.appendChild(x); };
+  const mb=$('hdMaps'); mb.innerHTML='';
+  H.maps.forEach((m,i)=>{ const r=el('div','hd-row'); r.dataset.i=i;
+    const s=document.createElement('select'); Object.entries(HD_SRC).forEach(([k,v])=>s.add(new Option(v,k))); s.value=m.src; s.onchange=()=>{ m.src=s.value; HD.val[i]=null; save(); }; r.appendChild(s);
+    r.appendChild(el('span',null,'→'));
+    // atajo: los faders en vivo que ya asignaste en Pro DMX
+    const tg=document.createElement('select'); tg.title='Faders en vivo de tu archivo de Pro DMX';
+    const fill=()=>{ const fs=fdList(); tg.innerHTML=''; tg.add(new Option('Fader de Pro DMX…',''));
+      fs.forEach(f=>tg.add(new Option(f.scenes.join(', ')+' · '+(FD_PARAM[f.param]||f.param)+' (CC '+f.cc+')',f.ch+':'+f.cc)));
+      tg.value=fs.some(f=>f.ch===m.ch&&f.cc===m.cc)?m.ch+':'+m.cc:''; };
+    fill(); tg.onmousedown=fill; tg.onchange=()=>{ if(!tg.value) return; const [a,b]=tg.value.split(':').map(Number); m.ch=a; m.cc=b; HD.sent={}; save(); renderHands(); }; r.appendChild(tg);
+    num(r,'Canal',m.ch,1,16,v=>m.ch=v); num(r,'CC',m.cc,0,127,v=>m.cc=v); num(r,'Mín',m.min,0,127,v=>m.min=v); num(r,'Máx',m.max,0,127,v=>m.max=v);
+    const il=el('label',null), ic=document.createElement('input'); ic.type='checkbox'; ic.checked=!!m.inv; ic.onchange=()=>{ m.inv=ic.checked; save(); }; il.appendChild(ic); il.appendChild(document.createTextNode(' Invertir')); r.appendChild(il);
+    const me=el('div','meter'); me.appendChild(el('i')); r.appendChild(me);
+    del(r,H.maps,i); mb.appendChild(r); });
+  const gb=$('hdGest'); gb.innerHTML='';
+  H.gest.forEach((g,i)=>{ const r=el('div','hd-row'); r.dataset.i=i;
+    const gs=document.createElement('select'); Object.entries(HD_GEST).forEach(([k,v])=>gs.add(new Option(v,k))); gs.value=g.g; gs.onchange=()=>{ g.g=gs.value; save(); }; r.appendChild(gs);
+    const hs=document.createElement('select'); [['any','cualquier mano'],['R','mano derecha'],['L','mano izquierda']].forEach(([k,v])=>hs.add(new Option(v,k))); hs.value=g.hand; hs.onchange=()=>{ g.hand=hs.value; save(); }; r.appendChild(hs);
+    r.appendChild(el('span',null,'→'));
+    r.appendChild(sceneSelect(g.scene,v=>{ if(HD.gest[i]) hdGestFire(g,false,true); g.scene=v; save(); },true));
+    const ms=document.createElement('select'); [['hold','mientras lo sostengas'],['toggle','prender / apagar']].forEach(([k,v])=>ms.add(new Option(v,k))); ms.value=g.mode; ms.onchange=()=>{ g.mode=ms.value; save(); }; r.appendChild(ms);
+    del(r,H.gest,i); gb.appendChild(r); });
+}
+$('hdOn').onclick=()=>{ (HD.on||HD.stream)?hdStop():hdStart(); };
+$('hdCam').onchange=()=>{ S.hands.dev=$('hdCam').value; save(); if(HD.on||HD.stream){ hdStop(); hdStart(); } };
+$('hdMirror').onchange=e=>{ S.hands.mirror=e.target.checked; save(); renderHands(); };
+$('hdSwap').onchange=e=>{ S.hands.swap=e.target.checked; save(); };
+$('hdSmooth').oninput=e=>{ S.hands.smooth=+e.target.value; save(); };
+$('hdZone').oninput=e=>{ S.hands.zone=+e.target.value; save(); };
+$('hdAddMap').onclick=()=>{ S.hands.maps.push({src:'R.open',ch:1,cc:51,min:0,max:127,inv:false}); save(); renderHands(); };
+$('hdAddGest').onclick=()=>{ S.hands.gest.push({g:'Open_Palm',hand:'any',scene:'',mode:'toggle'}); save(); renderHands(); };
+renderHands(); hdCams();
+if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange',hdCams);
 // ================= FASES DE LA NOCHE =================
 const PHASES=[
   {id:'check',name:'CHECK',sub:'Antes de abrir',c:'#9aa3b5',w:1.25,e:.08,g:0},

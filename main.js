@@ -22,7 +22,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); }
 let win = null;
 
 // ---------- servidor local + puente a ShowKontrol ----------
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.mjs': 'text/javascript', '.wasm': 'application/wasm' };
 
 function proxyShowKontrol(req, res) {
   // /sk/192.168.68.51:8090/api/v1/state  →  http://192.168.68.51:8090/api/v1/state
@@ -233,8 +233,11 @@ app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(
 app.whenReady().then(async () => {
   // Web MIDI: permitir sin preguntar
   const allow = ['midi', 'midiSysex', 'clipboard-sanitized-write', 'clipboard-read'];
-  session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => cb(allow.includes(perm)));
-  session.defaultSession.setPermissionCheckHandler((wc, perm) => allow.includes(perm));
+  // cámara (solo video) para el control con las manos, solo desde la página de la app
+  const own = u => /^http:\/\/127\.0\.0\.1:8095\//.test(u || '');
+  const camOk = (perm, url, d) => perm === 'media' && own(url) && !((d && d.mediaTypes) || []).includes('audio');
+  session.defaultSession.setPermissionRequestHandler((wc, perm, cb, d) => cb(allow.includes(perm) || camOk(perm, (d && d.requestingUrl) || wc.getURL(), d)));
+  session.defaultSession.setPermissionCheckHandler((wc, perm, origin, d) => allow.includes(perm) || (perm === 'media' && own((origin || '') + '/') && (!d || d.mediaType !== 'audio')));
 
   try { await startServer(); }
   catch (e) {
