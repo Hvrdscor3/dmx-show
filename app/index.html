@@ -198,6 +198,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 /* ---------- editor ---------- */
 #editor{--led:var(--led-intro)}
 .edhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:4px}
+.edtabs{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;align-self:center}
+.edtabs button{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.edtabs button i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.edtabs button.on{background:var(--strong);color:var(--onstrong);border-color:var(--strong)}
+.edtabs button.live::after{content:"EN VIVO";font-size:9.5px;letter-spacing:.06em;font-weight:600;color:var(--okc)}
 .edhead .pill{width:14px;height:14px;border-radius:50%;background:var(--led);box-shadow:0 0 10px var(--led);display:inline-block}
 .secthead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin:18px 0 10px}
 .secthead h3{margin:0}
@@ -729,7 +734,7 @@ details.panel>summary::-webkit-details-marker{display:none}
   </section>
 
   <section class="panel" id="editor" data-s="intro">
-    <div class="edhead"><span class="pill"></span><h2><span id="edTitle">Intro</span> <em id="edSub">en escena</em></h2></div>
+    <div class="edhead"><span class="pill"></span><h2><span id="edTitle">Intro</span> <em id="edSub">en escena</em></h2><div class="edtabs" id="edTabs" aria-label="Sección que editas"></div></div>
     <div class="secthead">
       <h3>Encendidas toda la sección</h3>
       <div class="legend"><span><i class="ld on"></i>En la sección</span><span><i class="ld lit"></i>Prendida ahora</span><span><b class="md">TGL</b>Toggle</span><span><b class="md">FLS</b>Flash</span><span><i class="ld pend"></i>Sin MIDI todavía</span></div>
@@ -1331,7 +1336,16 @@ function renderSecs(){
   });
   renderSecsState();
 }
+// pestañas del editor: cambian solo la sección que editas, nunca la que suena
+function renderEdTabs(){
+  const box=$('edTabs'); if(!box) return; const ek=editingKey(), ks=keys();
+  if(box.dataset.k!==ks.join('|')){ box.dataset.k=ks.join('|'); box.innerHTML='';
+    ks.forEach(k=>{ const b=el('button'); b.dataset.s=k; b.style.setProperty('--c',isPart(k)?ledOf(k):LED[k]); b.appendChild(el('i')); b.appendChild(document.createTextNode(labelOf(k)));
+      b.title='Editar las escenas de '+labelOf(k)+' sin cambiar lo que suena'; b.onclick=()=>{ editTo(k); renderSecsState(); renderEditor(); }; box.appendChild(b); }); }
+  box.querySelectorAll('button').forEach(b=>{ b.classList.toggle('on',b.dataset.s===ek); b.classList.toggle('live',b.dataset.s===live&&playing); b.setAttribute('aria-pressed',b.dataset.s===ek?'true':'false'); });
+}
 function renderSecsState(){
+  renderEdTabs();
   const ek=editingKey();
   keys().forEach(k=>{const b=$('sec_'+k); if(!b)return;
     b.classList.toggle('view',k===ek); b.classList.toggle('live',k===live&&playing); b.classList.toggle('queued',k===queued);});
@@ -1388,7 +1402,8 @@ function renderEditor(){
   const ed=$('editor');
   if(edit.song){ const s=songById(edit.song), pt=edObj();
     ed.style.setProperty('--led',PART_LEDS[pt.color||0]); $('edTitle').textContent=pt.name; $('edSub').textContent='· '+(s?s.name:''); }
-  else { ed.style.setProperty('--led',LED[view]); $('edTitle').textContent=SLABEL[view]; $('edSub').textContent='en escena'; }
+  else { ed.style.setProperty('--led',LED[view]); $('edTitle').textContent=SLABEL[view]; $('edSub').textContent=(view===live||!playing)?'en escena':'editando · suena '+labelOf(live); }
+  renderEdTabs();
   renderChips(); renderGrid(); renderFaders();
 }
 function sceneSelect(val,onchange){
