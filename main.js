@@ -234,7 +234,7 @@ app.whenReady().then(async () => {
   // Web MIDI: permitir sin preguntar
   const allow = ['midi', 'midiSysex', 'clipboard-sanitized-write', 'clipboard-read'];
   // cámara (solo video) para el control con las manos, solo desde la página de la app
-  const own = u => /^http:\/\/127\.0\.0\.1:8095\//.test(u || '');
+  const own = u => /^http:\/\/(localhost|127\.0\.0\.1):8095\//.test(u || '');
   const camOk = (perm, url, d) => perm === 'media' && own(url) && !((d && d.mediaTypes) || []).includes('audio');
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb, d) => cb(allow.includes(perm) || camOk(perm, (d && d.requestingUrl) || wc.getURL(), d)));
   session.defaultSession.setPermissionCheckHandler((wc, perm, origin, d) => allow.includes(perm) || (perm === 'media' && own((origin || '') + '/') && (!d || d.mediaType !== 'audio')));
