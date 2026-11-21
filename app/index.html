@@ -875,8 +875,7 @@ details.panel>summary::-webkit-details-marker{display:none}
         <h3 class="ptitle">Ajustes</h3>
         <label class="f">Suavizado <input type="range" id="hdSmooth" min="0" max="90" step="5"></label>
         <label class="f">Margen de la zona activa <input type="range" id="hdZone" min="0" max="30" step="1"></label>
-        <div class="f">Activo en <span class="hd-secs" id="hdSecs"></span></div>
-        <p class="psub">Fuera de la zona punteada el valor se queda en el borde. En las secciones apagadas no manda nada.</p>
+        <p class="psub">Funciona en cualquier sección. Mientras tu mano esté a la vista, manda sobre los faders automáticos. Fuera de la zona punteada, el valor se queda en el borde.</p>
       </div>
     </div>
     <h3 class="ptitle">Movimientos → faders (CC)</h3>
@@ -1134,6 +1133,8 @@ S.faders=S.faders||{};
 const FD_DEF=()=>({intro:{a:null,b:null},build:{a:30,b:100},drop:{a:100,b:100},break:{a:null,b:null}});
 function fdList(){ const seen={}; return (S.importLive||[]).filter(f=>{ const k=fdKey(f); if(seen[k]){ seen[k].scenes.push(f.scene); return false; } seen[k]=f; f.scenes=[f.scene]; return true; }); }
 function fdCfg(f){ const k=fdKey(f); if(!S.faders[k]) S.faders[k]=FD_DEF(); return S.faders[k]; }
+const HD_OWN={}; // ch:cc → último momento en que una mano controló ese fader
+const HD_KEEP=new Set(); // escenas prendidas con un gesto: el cambio de sección no las apaga
 const FD={};   // estado en vivo por ch:cc → {sent, manual (sección donde lo moviste), sec}
 function fdSecKey(){ return isPart(live)?stdKey(live):live; }
 function fdProgress(){
@@ -1149,6 +1150,7 @@ function faderTick(t){
   fdList().forEach(f=>{
     const k=fdKey(f), st=FD[k]=FD[k]||{}, c=(fdCfg(f)[sk])||{};
     if(st.sec!==sk){ st.sec=sk; st.manual=null; }
+    if(HD_OWN[k]&&performance.now()-HD_OWN[k]<1500) st.manual=sk;   // la mano manda sobre lo automático, en cualquier sección
     if(st.manual===sk||c.a==null) return;
     const b=c.b==null?c.a:c.b, pct=c.a+(b-c.a)*p, v=Math.round(f.min+(f.max-f.min)*Math.max(0,Math.min(100,pct))/100);
     if(v===st.sent) return;
@@ -1199,7 +1201,7 @@ function applySection(t,keepColor){
   if(!keepColor){ colorIdx=0; }
   curColor=sec.colors.length?sec.colors[colorIdx%sec.colors.length]:null;
   const want=new Set(sec.fixed); if(curColor) want.add(curColor);
-  [...lit].forEach(n=>{ if(!want.has(n)) setScene(n,false,t); });
+  [...lit].forEach(n=>{ if(!want.has(n)&&!HD_KEEP.has(n)) setScene(n,false,t); });
   want.forEach(n=>setScene(n,true,t));
   queueUi();
 }
@@ -1210,7 +1212,7 @@ function rotateColor(t){
   if(curColor && curColor!==next) setScene(curColor,false,t);
   curColor=next; setScene(next,true,t); queueUi();
 }
-function allOff(t){ [...lit].forEach(n=>setScene(n,false,t)); curColor=null; queueUi(); }
+function allOff(t){ HD_KEEP.clear(); [...lit].forEach(n=>setScene(n,false,t)); curColor=null; queueUi(); }
 function panic(){
   warmSet(false);
   allOff(performance.now()); stdOff(performance.now()); suiteOff();
@@ -2418,7 +2420,7 @@ S.hands=Object.assign(HD_DEF(),S.hands||{});
 const HD={on:false,stream:null,rec:null,raf:0,lastT:-1,val:{},sent:{},gest:{},cand:{},seen:{}};
 const HD_LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 const hdNote=t=>{ $('hdNote').textContent=t; };
-const hdSecOk=()=>S.hands.secs[fdSecKey()]!==false;
+const hdSecOk=()=>true;   // las manos funcionan en cualquier sección de la canción
 const hdClamp=v=>Math.max(0,Math.min(1,v));
 // posición dentro de la zona activa → 0..1 (derecha y arriba = más)
 function hdAxis(v,isX){ const z=S.hands.zone/100, t=hdClamp((v-z)/(1-2*z||1)); return isX?(S.hands.mirror?1-t:t):1-t; }
@@ -2494,8 +2496,9 @@ function hdApply(hands){
     if(m.inv) t=1-t;
     HD.val[i]=HD.val[i]==null?t:HD.val[i]+(t-HD.val[i])*a;
     const v=Math.max(0,Math.min(127,Math.round(m.min+(m.max-m.min)*HD.val[i]))), ch=Math.max(1,Math.min(16,m.ch|0)), cc=m.cc&127;
-    if(bar){ bar.style.opacity=ok?1:.3; bar.style.width=(HD.val[i]*100)+'%'; }
-    if(ok&&v!==HD.sent[i]){ HD.sent[i]=v; send([0xB0|(ch-1),cc,v]); fdManual(ch,cc,v); }
+    if(bar){ bar.style.opacity=1; bar.style.width=(HD.val[i]*100)+'%'; }
+    HD_OWN[ch+':'+cc]=now;
+    if(v!==HD.sent[i]){ HD.sent[i]=v; send([0xB0|(ch-1),cc,v]); fdManual(ch,cc,v); }
     out.push('CC '+cc+': '+v);
   });
   // un gesto cuenta si se sostiene 1/4 de segundo; se suelta cuando deja de verse por 0.3 s
@@ -2510,17 +2513,14 @@ function hdApply(hands){
 }
 function hdGestFire(g,act,ok){
   if(!g.scene) return; const t=performance.now();
-  if(g.mode==='hold'){ if(act&&!ok) return; setScene(g.scene,act,t); }
-  else if(act&&ok) setScene(g.scene,!lit.has(g.scene),t);
+  if(g.mode==='hold'){ if(act&&!ok) return; setScene(g.scene,act,t); act?HD_KEEP.add(g.scene):HD_KEEP.delete(g.scene); }
+  else if(act&&ok){ const on=!lit.has(g.scene); setScene(g.scene,on,t); on?HD_KEEP.add(g.scene):HD_KEEP.delete(g.scene); }
   queueUi();
 }
 function renderHands(){
   const H=S.hands;
   $('hdMirror').checked=!!H.mirror; $('hdSwap').checked=!!H.swap; $('hdSmooth').value=H.smooth; $('hdZone').value=H.zone;
   $('hdView').classList.toggle('mirror',!!H.mirror);
-  const sb=$('hdSecs'); sb.innerHTML='';
-  SECS.forEach(k=>{ const l=el('label','rmchk'), c=document.createElement('input'); c.type='checkbox'; c.checked=H.secs[k]!==false;
-    c.onchange=()=>{ H.secs[k]=c.checked; save(); }; l.appendChild(c); l.appendChild(document.createTextNode(' '+SLABEL[k])); sb.appendChild(l); });
   const num=(r,lbl,val,mn,mx,set)=>{ const l=el('label',null,lbl+' '), n=document.createElement('input'); n.type='number'; n.min=mn; n.max=mx; n.value=val;
     n.onchange=()=>{ const v=Math.max(mn,Math.min(mx,Math.round(+n.value||0))); n.value=v; set(v); HD.sent={}; save(); }; l.appendChild(n); r.appendChild(l); };
   const del=(r,list,i)=>{ const x=el('button','x','Quitar'); x.onclick=()=>{ list.splice(i,1); HD.val={}; HD.sent={}; HD.gest={}; HD.cand={}; save(); renderHands(); }; r.appendChild(x); };
