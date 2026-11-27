@@ -284,6 +284,17 @@ label.f.inline{flex-direction:row;align-items:center;gap:8px}
 .vf-t.man .vf-f{background:linear-gradient(to top,#ff3d7f,#ff8fb5)}
 .vf-v{font-family:var(--mono);font-size:13px;text-align:center}
 .vf-v small{display:block;font-size:10px;color:var(--muted)}
+.vf-t.lfo .vf-f{background:linear-gradient(to top,#2bb3ff,#8fdcff)}
+.vf-lfo{display:flex;flex-direction:column;gap:5px}
+.vf-lt{font:600 11px var(--mono);letter-spacing:.1em;padding:5px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit;cursor:pointer}
+.vf-lt.on{background:#2bb3ff;border-color:#2bb3ff;color:#001522}
+.vf-lo{display:flex;flex-direction:column;gap:4px}
+.vf-lo[hidden]{display:none}
+.vf-lo select{width:100%;font-size:11.5px}
+.vf-lr{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.vf-lr label{font-size:10px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.vf-lr input{width:100%;font-size:11.5px;min-width:0;padding:3px 4px;-moz-appearance:textfield;appearance:textfield}
+.vf-lr input::-webkit-inner-spin-button,.vf-lr input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .xybox{flex:0 1 340px;min-width:240px}
 .xy{background:var(--ice2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .xy-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12.5px}
@@ -1197,7 +1208,7 @@ function faderTick(t){
     const k=fdKey(f), st=FD[k]=FD[k]||{}, c=(fdCfg(f)[sk])||{};
     if(st.sec!==sk){ st.sec=sk; st.manual=null; }
     if(HD_OWN[k]&&performance.now()-HD_OWN[k]<1500) st.manual=sk;   // la mano manda sobre lo automático, en cualquier sección
-    if(st.manual===sk||c.a==null) return;
+    if(lfoOn(k)||st.manual===sk||c.a==null) return;
     const b=c.b==null?c.a:c.b, pct=c.a+(b-c.a)*p, v=Math.round(f.min+(f.max-f.min)*Math.max(0,Math.min(100,pct))/100);
     if(v===st.sent) return;
     st.sent=v; send([0xB0|(f.ch-1),f.cc,v],t); fdPaint();
@@ -1205,8 +1216,30 @@ function faderTick(t){
 }
 function fdManual(ch,cc,v){
   const f=fdList().find(x=>x.ch===ch&&x.cc===cc); if(!f) return;
-  const st=FD[fdKey(f)]=FD[fdKey(f)]||{}; st.manual=fdSecKey(); st.sec=st.manual; st.sent=v; fdPaint();
+  const st=FD[fdKey(f)]=FD[fdKey(f)]||{}; st.manual=fdSecKey(); st.sec=st.manual; st.sent=v; st.manT=performance.now(); fdPaint();
 }
+// ---------- LFO al BPM por fader ----------
+// Mueve el fader entre "mín %" y "máx %" con la forma elegida; un ciclo dura N beats del BPM actual.
+// Tiene prioridad sobre la automatización por sección; si lo mueves a mano (o con las manos) se pausa 1.5 s.
+S.lfo=S.lfo||{};
+const LFO_SHAPES={sin:'Seno',tri:'Triángulo',saw:'Sierra ↑',ramp:'Sierra ↓',sq:'Cuadrada'};
+const LFO_RATES=[[16,'4 compases'],[8,'2 compases'],[4,'1 compás'],[2,'1/2 compás'],[1,'1 beat'],[0.5,'1/2 beat'],[0.25,'1/4 beat']];
+const lfoCfg=k=>S.lfo[k]=Object.assign({on:false,shape:'sin',beats:4,lo:0,hi:100},S.lfo[k]||{});
+const lfoOn=k=>!!(S.lfo[k]&&S.lfo[k].on);
+let LFO_A=null; // ancla de fase: {t, beat} tomada del reloj del show en cada beat
+function lfoBeat(now){ const bpm=S.bpm||120; return (playing&&LFO_A)?LFO_A.beat+(now-LFO_A.t)*bpm/60000:now*bpm/60000; }
+function lfoWave(shape,ph){ ph-=Math.floor(ph);
+  return shape==='tri'?1-Math.abs(ph*2-1):shape==='saw'?ph:shape==='ramp'?1-ph:shape==='sq'?(ph<0.5?1:0):0.5-0.5*Math.cos(ph*2*Math.PI); }
+function lfoTick(){
+  if(venueOnly()) return;
+  const now=performance.now(), beat=lfoBeat(now);
+  fdList().forEach(f=>{ const k=fdKey(f); if(!lfoOn(k)) return;
+    const c=S.lfo[k], st=FD[k]=FD[k]||{};
+    if((st.manT&&now-st.manT<1500)||(HD_OWN[k]&&now-HD_OWN[k]<1500)) return;
+    const pct=c.lo+(c.hi-c.lo)*lfoWave(c.shape,beat/(c.beats||4)), v=Math.round(f.min+(f.max-f.min)*Math.max(0,Math.min(100,pct))/100);
+    if(v===st.sent) return; st.sent=v; st.manual=null; send([0xB0|(f.ch-1),f.cc,v]); });
+}
+setInterval(lfoTick,33);
 let fdPending=false;
 function fdPaint(){ if(fdPending) return; fdPending=true; requestAnimationFrame(()=>{ fdPending=false;
   fdList().forEach(f=>{ const e=document.getElementById('fdv_'+fdKey(f).replace(':','_')); if(!e) return; const st=FD[fdKey(f)]||{};
@@ -1227,14 +1260,26 @@ function vfader(f){
   const tr=el('div','vf-t'), fill=el('div','vf-f'), val=el('div','vf-v'); tr.appendChild(fill); box.appendChild(tr); box.appendChild(val);
   tr.tabIndex=0; tr.setAttribute('role','slider'); tr.setAttribute('aria-label',f.scenes.join(', ')+' '+(FD_PARAM[f.param]||f.param)); tr.setAttribute('aria-valuemin','0'); tr.setAttribute('aria-valuemax','100');
   let drag=false; const ds=dragSender(v=>fdSendRel(f,v));
-  const show=(v,man)=>{ fill.style.height=(v==null?0:v/127*100)+'%'; tr.classList.toggle('man',!!man); val.innerHTML=''; val.appendChild(document.createTextNode(v==null?'—':Math.round(v/127*100)+' %')); val.appendChild(el('small',null,man?'manual':'auto')); if(v!=null) tr.setAttribute('aria-valuenow',String(Math.round(v/127*100))); };
+  const k=fdKey(f), L=lfoCfg(k), lb=el('div','vf-lfo');
+  const tg=el('button','vf-lt','LFO'); tg.type='button'; tg.setAttribute('aria-pressed',String(L.on));
+  const opts=el('div','vf-lo');
+  const sel=(items,key,num)=>{ const s=document.createElement('select'); items.forEach(([v,t])=>s.add(new Option(t,v))); s.value=L[key]; s.onchange=()=>{ L[key]=num?+s.value:s.value; save(); }; opts.appendChild(s); };
+  sel(Object.entries(LFO_SHAPES),'shape'); sel(LFO_RATES,'beats',true);
+  const rg=el('div','vf-lr'); const pn=(lbl,key)=>{ const l=el('label',null,lbl), i=document.createElement('input'); i.type='number'; i.min=0; i.max=100; i.value=L[key];
+    i.onchange=()=>{ L[key]=Math.max(0,Math.min(100,Math.round(+i.value||0))); i.value=L[key]; save(); }; l.appendChild(i); rg.appendChild(l); };
+  pn('Mín %','lo'); pn('Máx %','hi'); opts.appendChild(rg);
+  const syncL=()=>{ tg.classList.toggle('on',L.on); tg.setAttribute('aria-pressed',String(L.on)); opts.hidden=!L.on; tr.classList.toggle('lfo',L.on); };
+  tg.onclick=()=>{ L.on=!L.on; if(!L.on){ const st=FD[k]; if(st) st.sent=null; } save(); syncL(); };
+  lb.appendChild(tg); lb.appendChild(opts); syncL();
+  const show=(v,man)=>{ fill.style.height=(v==null?0:v/127*100)+'%'; tr.classList.toggle('man',!!man); val.innerHTML=''; val.appendChild(document.createTextNode(v==null?'—':Math.round(v/127*100)+' %')); val.appendChild(el('small',null,man?'manual':L.on?'LFO':'auto')); if(v!=null) tr.setAttribute('aria-valuenow',String(Math.round(v/127*100))); };
   const at=e=>{ const r=tr.getBoundingClientRect(); return Math.round(cl01((r.bottom-e.clientY)/r.height)*127); };
   tr.addEventListener('pointerdown',e=>{ e.preventDefault(); tr.setPointerCapture(e.pointerId); tr.focus(); drag=true; const v=at(e); show(v,true); ds.push(v); });
   tr.addEventListener('pointermove',e=>{ if(!drag) return; const v=at(e); show(v,true); ds.push(v); });
   const end=()=>{ if(!drag) return; drag=false; ds.end(); };
   tr.addEventListener('pointerup',end); tr.addEventListener('pointercancel',end);
   tr.addEventListener('keydown',e=>{ const d={ArrowUp:5,ArrowRight:5,ArrowDown:-5,ArrowLeft:-5,PageUp:20,PageDown:-20}[e.key]; if(!d) return; e.preventDefault(); const v=Math.max(0,Math.min(127,(fdNow(f)||0)+d)); show(v,true); fdSendRel(f,v); });
-  box.paint=()=>{ if(drag) return; const st=FD[fdKey(f)]||{}; show(fdNow(f),!!(st.manual&&st.manual===fdSecKey())); };
+  box.appendChild(lb);
+  box.paint=()=>{ if(drag) return; const st=FD[k]||{}; show(fdNow(f),L.on?!!(st.manT&&performance.now()-st.manT<1500):!!(st.manual&&st.manual===fdSecKey())); };
   return box;
 }
 function xyPad(){
@@ -1363,6 +1408,7 @@ function fire(t){
   const s=step,b=bar,sn=live;
   setTimeout(()=>paint(s,fired,b,sn),Math.max(0,t-performance.now()));
   faderTick(t);
+  if(step%4===0) LFO_A={t,beat:(bar*16+step)/4};
   step=(step+1)%16;
 }
 // beat jump: mueve la posición del show N compases (en automático cambia de sección al pasarse)
@@ -2480,7 +2526,7 @@ function rmState(){
     secs:SECS.map(k=>({k,label:SLABEL[k]})),
     cats:CATS,
     scenes:S.cat.map(c=>({n:c.name,cat:c.cat,page:c.page,flash:c.mode==='flash',pend:!!c.pending})),
-    faders:fdList().map(f=>{ const st=FD[fdKey(f)]||{}; return {ch:f.ch,cc:f.cc,label:f.scenes.join(', ')+' · '+(FD_PARAM[f.param]||f.param),v:fdNow(f),manual:!!(st.manual&&st.manual===fdSecKey())}; }),
+    faders:fdList().map(f=>{ const st=FD[fdKey(f)]||{}; return {ch:f.ch,cc:f.cc,label:f.scenes.join(', ')+' · '+(FD_PARAM[f.param]||f.param),v:fdNow(f),manual:!!(st.manual&&st.manual===fdSecKey()),lfo:lfoOn(fdKey(f))}; }),
     xy:{label:S.xy.label,ch:S.xy.ch,ccx:S.xy.ccx,ccy:S.xy.ccy,x:CCV[S.xy.ch+':'+S.xy.ccx]??null,y:CCV[S.xy.ch+':'+S.xy.ccy]??null} };
 }
 function rmPush(){ if(!S.remote.on||!rmOk()) return; const s=JSON.stringify(rmState()); if(s===RM.last) return; RM.last=s; dmxApp.remoteState(JSON.parse(s)); }
