@@ -173,7 +173,7 @@ function build(){
   (st.secs||[]).forEach(s=>{ const b=el('button',null,s.label); b.dataset.k=s.k; b.style.setProperty('--c',COL[s.k]||'var(--orange)'); b.onclick=()=>{ cmd({t:'section',k:s.k}); }; secs.appendChild(b); });
   const fb=$('faders'); fb.innerHTML=''; $('fdH').hidden=!(st.faders||[]).length;
   (st.faders||[]).forEach(f=>fb.appendChild(fader(f)));
-  const have=new Set((st.scenes||[]).map(s=>s.cat)), order=['mov','color','dim','fx','wash','laser','strobe',...Object.keys(st.cats||{})];
+  const have=new Set((st.scenes||[]).map(s=>s.cat)), order=['mov','dim','color','fx','wash','laser','strobe',...Object.keys(st.cats||{})];
   const cats=[...new Set([...order.filter(c=>have.has(c)),...have])];
   if(!cats.includes(tab)) tab=cats[0]||null;
   const tb=$('tabs'); tb.innerHTML='';
