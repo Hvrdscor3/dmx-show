@@ -245,6 +245,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .sp.pend.on{border-style:dashed;border-color:var(--led)}
 .sp.lit::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--go);box-shadow:0 0 0 2px var(--card)}
 .colorbank{margin-bottom:4px}
+.layeradd{margin-top:8px;column-span:all}
+.layeradd select{max-width:100%;font-size:13px;padding:6px 8px;border-radius:8px;border:1px dashed var(--line);background:transparent;color:inherit}
+.spw{position:relative;display:inline-flex}
+.spw>.sp{flex:1}
+.spx{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:var(--ice2);color:var(--muted);font-size:11px;line-height:1;cursor:pointer;padding:0}
+.spx:hover{color:#ff3d7f}
 .stage{border-left:3px solid var(--line);padding:2px 0 4px 14px;margin:14px 0}
 .stg{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 10px}
 .stg b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--strong);color:var(--onstrong);font-size:11px;letter-spacing:0}
@@ -670,7 +676,7 @@ details.panel>summary::-webkit-details-marker{display:none}
   <main class="screen" id="scr-main" data-screen="main">
 
   <nav class="jump" aria-label="Secciones de la app">
-    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#envivo">Faders</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#manos">Manos</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
+    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#manos">Manos</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
     <span class="dockctl"><button id="dockReset" hidden>Restablecer</button><button id="dockEdit" title="Cambiar el orden de las secciones de la página">⇅ Ordenar</button></span>
   </nav>
 
@@ -795,17 +801,6 @@ details.panel>summary::-webkit-details-marker{display:none}
     </details>
   </section>
 
-  <section class="panel" id="envivo">
-    <div class="songs-head">
-      <div>
-        <span class="lbl"><i class="flag"></i>Faders en vivo</span>
-        <p class="big-serif">Muévelos a mano, igual que en el celular.</p>
-        <p class="psub">Al moverlo, la app respeta tu valor hasta la siguiente sección. El pad X/Y manda dos CC a la vez: asígnalos en Pro DMX a pan y tilt.</p>
-      </div>
-    </div>
-    <div class="lvwrap"><div class="lvfaders" id="lvFaders"></div><div class="xybox" id="xyBox"></div></div>
-  </section>
-
   <section class="panel" id="editor" data-s="intro">
     <div class="edhead"><span class="pill"></span><h2><span id="edTitle">Intro</span> <em id="edSub">en escena</em></h2><div class="edtabs" id="edTabs" aria-label="Sección que editas"></div></div>
     <div class="secthead">
@@ -822,6 +817,7 @@ details.panel>summary::-webkit-details-marker{display:none}
         </label>
       </div>
       <div id="colorChips" class="colorgrid"></div>
+      <div id="colorAdd"></div>
     </div></div>
     <div class="stage"><h3 class="stg"><b>3</b>Haz y láser <em>efectos de haz, washes y láser encima</em></h3><div id="chBeam" class="banks"></div></div>
     <div class="stage"><h3 class="stg"><b>4</b>Strobe <em>encendidos toda la sección o como golpes al ritmo</em></h3><div id="chStb" class="banks"></div>
@@ -1355,7 +1351,7 @@ function applySection(t,keepColor){
   const want=new Set(sec.fixed); if(curColor) want.add(curColor);
   [...lit].forEach(n=>{ if(!want.has(n)&&!HD_KEEP.has(n)) setScene(n,false,t); });
   // se prenden por capas: movimiento base → color → haz y láser → strobe
-  const rank=n=>{ const c=sc(n); if(!c) return 9; if(c.cat==='color') return 1; return {mov:0,beam:2,stb:3}[STAGE_OF[c.cat]||'beam']; };
+  const rank=n=>{ const c=sc(n); if(!c) return 9; return {mov:0,color:1,beam:2,stb:3}[stageOf(c)]??2; };
   [...want].sort((a,b)=>rank(a)-rank(b)).forEach(n=>setScene(n,true,t));
   queueUi();
 }
@@ -1585,30 +1581,57 @@ function scenePad(c,active,onclick,extra){
 // a qué capa del editor va cada categoría (lo que no esté aquí va a "Haz y láser")
 const STAGE_OF={mov:'mov',shape:'mov',pos:'mov',wave:'mov',base:'mov',dim:'mov',fx:'beam',bars:'beam',spots:'beam',wash:'beam',laser:'beam',combo:'beam',amb:'beam',strobe:'stb',hit:'stb'};
 const STAGE_KEYS=['mov','shape','pos','wave','base','dim','fx','bars','spots','wash','laser','combo','amb','strobe','hit'];
+// capa de cada escena: la de su prefijo, o la que tú elegiste con "Agregar escena a esta capa"
+S.layerOf=S.layerOf||{};
+const natStage=c=>c.cat==='color'?'color':(STAGE_OF[c.cat]||'beam');
+const stageOf=c=>S.layerOf[c.name]||natStage(c);
+function layerAdd(st,sec){
+  const w=el('div','layeradd'), inColors=st==='color', has=n=>inColors?sec.colors.includes(n):sec.fixed.includes(n);
+  const s=sceneSelect('',v=>{ if(!v) return; const c=sc(v); if(!c) return;
+    if(natStage(c)!==st) S.layerOf[c.name]=st; else delete S.layerOf[c.name];
+    if(!has(c.name)) (inColors?sec.colors:sec.fixed).push(c.name);
+    save(); liveRefresh(); renderChips(); },false);
+  s.insertBefore(new Option(S.cat.length?'+ Agregar escena a esta capa…':'Importa tu archivo de Pro DMX para elegir escenas',''),s.firstChild); s.value='';
+  [...s.querySelectorAll('option')].forEach(o=>{ if(o.value&&has(o.value)) o.disabled=true; });
+  s.setAttribute('aria-label','Agregar escena a esta capa'); w.appendChild(s); return w;
+}
 function renderChips(){
   const sec=edObj();
   // capas en orden: 1 movimiento base · 2 colores (abajo) · 3 haz y láser · 4 strobe
   const box={mov:$('chMov'),beam:$('chBeam'),stb:$('chStb')}; Object.values(box).forEach(b=>b.innerHTML='');
+  const toggleFixed=c=>{ const i=sec.fixed.indexOf(c.name); i>=0?sec.fixed.splice(i,1):sec.fixed.push(c.name); save(); liveRefresh(); renderChips(); };
+  // escenas que tú pasaste a otra capa: aparecen en su propio bloque, con ✕ para regresarlas
+  Object.entries(box).forEach(([st,b])=>{
+    const moved=S.cat.filter(c=>S.layerOf[c.name]===st&&natStage(c)!==st); if(!moved.length) return;
+    const bank=el('div','bank'); const n=moved.filter(c=>sec.fixed.includes(c.name)).length;
+    bank.innerHTML='<div class="bank-h"><span class="bank-t">Elegidas por ti</span><span class="bank-c">'+(n?n+(n>1?' activas':' activa'):'ninguna')+'</span></div>';
+    const g=el('div','bank-g');
+    moved.forEach(c=>{ const w=el('span','spw'); w.appendChild(scenePad(c,sec.fixed.includes(c.name),()=>toggleFixed(c)));
+      const x=el('button','spx','✕'); x.title='Regresar '+c.name+' a su capa'; x.onclick=()=>{ delete S.layerOf[c.name]; save(); liveRefresh(); renderChips(); }; w.appendChild(x); g.appendChild(w); });
+    bank.appendChild(g); b.appendChild(bank);
+  });
   [...STAGE_KEYS.filter(k=>CATS[k]),...Object.keys(CATS).filter(k=>!STAGE_KEYS.includes(k))].filter(k=>k!=='color').forEach(k=>{
-    const list=S.cat.filter(c=>c.cat===k).sort((a,b)=>(a.pending-b.pending)); if(!list.length)return;
+    const list=S.cat.filter(c=>c.cat===k&&stageOf(c)===natStage(c)).sort((a,b)=>(a.pending-b.pending)); if(!list.length)return;
     const fx=box[STAGE_OF[k]||'beam'];
     const bank=document.createElement('div'); bank.className='bank';
     const n=list.filter(c=>sec.fixed.includes(c.name)).length;
     bank.innerHTML='<div class="bank-h"><span class="bank-t">'+CATS[k]+'</span><span class="bank-c">'+(n?n+(n>1?' activas':' activa'):'ninguna')+'</span></div>';
     const g=document.createElement('div'); g.className='bank-g';
-    list.forEach(c=>g.appendChild(scenePad(c,sec.fixed.includes(c.name),()=>{
-      const i=sec.fixed.indexOf(c.name); i>=0?sec.fixed.splice(i,1):sec.fixed.push(c.name); save(); liveRefresh(); renderChips();
-    })));
+    list.forEach(c=>g.appendChild(scenePad(c,sec.fixed.includes(c.name),()=>toggleFixed(c))));
     bank.appendChild(g); fx.appendChild(bank);
   });
-  Object.entries(box).forEach(([k,b])=>{ if(!b.children.length) b.appendChild(el('p','empty',{mov:'No hay escenas de movimiento (prefijo MOV |).',beam:'No hay escenas de haz o láser (prefijos FX | y LZR |).',stb:'No hay escenas de strobe (prefijo STB |).'}[k])); });
+  Object.entries(box).forEach(([k,b])=>{ if(!b.children.length) b.appendChild(el('p','empty',{mov:'Todavía no hay escenas en esta capa. Elige una abajo.',beam:'Todavía no hay escenas en esta capa. Elige una abajo.',stb:'Todavía no hay escenas en esta capa. Elige una abajo.'}[k]));
+    b.appendChild(layerAdd(k,sec)); });
   const cc=$('colorChips'); cc.innerHTML='';
-  S.cat.filter(c=>c.cat==='color').sort((a,b)=>(a.pending-b.pending)).forEach(c=>{
+  $('colorAdd').innerHTML=''; $('colorAdd').appendChild(layerAdd('color',sec));
+  S.cat.filter(c=>stageOf(c)==='color').sort((a,b)=>(a.pending-b.pending)).forEach(c=>{
     const idx=sec.colors.indexOf(c.name);
     const b=scenePad(c,idx>=0,()=>{ const i=sec.colors.indexOf(c.name); i>=0?sec.colors.splice(i,1):sec.colors.push(c.name); save(); liveRefresh(); renderChips(); },' color');
     b.style.setProperty('--sw',swatchOf(c.name));
     const o=document.createElement('span'); o.className='ord'; o.textContent=idx>=0?String(idx+1):''; b.prepend(o);
-    cc.appendChild(b);
+    if(S.layerOf[c.name]==='color'&&c.cat!=='color'){ const w=el('span','spw'); w.appendChild(b); const x=el('button','spx','✕'); x.title='Quitar '+c.name+' de colores';
+      x.onclick=()=>{ delete S.layerOf[c.name]; const i=sec.colors.indexOf(c.name); if(i>=0) sec.colors.splice(i,1); save(); liveRefresh(); renderChips(); }; w.appendChild(x); cc.appendChild(w); }
+    else cc.appendChild(b);
   });
   $('colorOrder').textContent=sec.colors.length?sec.colors.map(n=>n.replace(/^(B\s*\|\s*|COLOR\s+)/,'')).join(' → '):'sin colores';
   $('colorEvery').value=String(sec.every||4);
