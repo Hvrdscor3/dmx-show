@@ -65,6 +65,15 @@ button{font:inherit;color:inherit;border:0;background:var(--card2);border-radius
 .track{position:relative;height:230px;border-radius:12px;background:var(--card2);overflow:hidden;touch-action:none}
 .fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(to top,var(--orange),#ffb36b);opacity:.85}
 .track.man .fill{background:linear-gradient(to top,#ff3d7f,#ff8fb5)}
+.xy{background:var(--card);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.xy-p{position:relative;aspect-ratio:1;border-radius:12px;background:var(--card2);touch-action:none;
+  background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:25% 25%;background-position:center}
+.xy-p::before,.xy-p::after{content:"";position:absolute;background:rgba(255,255,255,.16)}
+.xy-p::before{left:50%;top:0;bottom:0;width:1px}.xy-p::after{top:50%;left:0;right:0;height:1px}
+#xyDot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--orange);box-shadow:0 0 18px var(--orange);left:50%;top:50%;pointer-events:none}
+#xyDot.off{background:var(--muted);box-shadow:none}
+.xy-f{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.xy-f button{padding:8px 14px}
 .val{font-family:var(--mono);font-size:14px;text-align:center}
 .val small{display:block;font-size:10px;color:var(--orange);min-height:12px}
 .tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:8px}
@@ -106,6 +115,11 @@ button{font:inherit;color:inherit;border:0;background:var(--card2);border-radius
 <div class="grid" id="grid"></div>
 <div class="h" id="fdH" hidden>Faders</div>
 <div class="faders" id="faders"></div>
+<div class="h" id="xyH" hidden>Pad X/Y</div>
+<div class="xy" id="xy" hidden>
+  <div class="xy-p" id="xyPad"><i id="xyDot"></i></div>
+  <div class="xy-f"><span id="xyVal">X — · Y —</span><button id="xyCenter">Centrar</button></div>
+</div>
 <div class="bottom">
   <button id="next">Siguiente sección ▸</button>
   <button id="panic"><i id="panicBar"></i>Apagar todo (mantener)</button>
@@ -256,7 +270,23 @@ function paint(){
   const lit=new Set(st.lit||[]);
   document.querySelectorAll('.sc').forEach(b=>{ if(!b.matches(':active')) b.classList.toggle('lit',lit.has(b.dataset.n)); });
   (st.faders||[]).forEach(f=>{ const k=f.ch+':'+f.cc; if(dragging[k]) return; const box=document.querySelector('.fd[data-k="'+k+'"]'); if(box) show(box,f.v,f.manual); });
+  const xy=st.xy; $('xy').hidden=$('xyH').hidden=!xy;
+  if(xy){ $('xyH').textContent='Pad X/Y · '+xy.label+' (CC '+xy.ccx+' / '+xy.ccy+')'; if(!xyDrag) xyShow(xy.x,xy.y); }
 }
+// ----- pad X/Y: un dedo mueve los dos CC a la vez -----
+let xyDrag=false, xyLast=null, xyT=0, xyPend=null;
+function xyShow(x,y){ const d=$('xyDot'), off=x==null||y==null; d.classList.toggle('off',off); d.style.left=(off?50:x/127*100)+'%'; d.style.top=(off?50:100-y/127*100)+'%'; $('xyVal').textContent=off?'X — · Y —':'X '+x+' · Y '+y; }
+function xySend(p){ xyLast=p; const n=Date.now(); clearTimeout(xyPend);
+  if(n-xyT>=35){ xyT=n; cmd({t:'xy',x:p[0],y:p[1]}); } else xyPend=setTimeout(()=>{ xyT=Date.now(); cmd({t:'xy',x:xyLast[0],y:xyLast[1]}); },35); }
+(function(){
+  const pad=$('xyPad'), cl=v=>Math.max(0,Math.min(1,v));
+  const at=e=>{ const r=pad.getBoundingClientRect(); return [Math.round(cl((e.clientX-r.left)/r.width)*127),Math.round(cl((r.bottom-e.clientY)/r.height)*127)]; };
+  pad.addEventListener('pointerdown',e=>{ e.preventDefault(); pad.setPointerCapture(e.pointerId); xyDrag=true; const p=at(e); xyShow(p[0],p[1]); xySend(p); });
+  pad.addEventListener('pointermove',e=>{ if(!xyDrag) return; const p=at(e); xyShow(p[0],p[1]); xySend(p); });
+  const end=()=>{ if(!xyDrag) return; xyDrag=false; clearTimeout(xyPend); if(xyLast) cmd({t:'xy',x:xyLast[0],y:xyLast[1]}); };
+  pad.addEventListener('pointerup',end); pad.addEventListener('pointercancel',end);
+  $('xyCenter').onclick=()=>{ xyShow(64,64); cmd({t:'xy',x:64,y:64}); };
+})();
 // ----- lo que suena (ShowKontrol) · la posición avanza sola entre lecturas -----
 let skAt=0, segKey='';
 const mmss=ms=>{ ms=Math.max(0,ms||0); const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };

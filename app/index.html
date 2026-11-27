@@ -266,6 +266,32 @@ label.f.inline{flex-direction:row;align-items:center;gap:8px}
 .rmbox{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);align-items:center}
 .rmchk{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;flex:1}
 .rmurl{font-family:var(--mono);user-select:all;color:var(--ink)}
+/* faders en vivo y pad X/Y */
+.lvwrap{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;margin-top:10px}
+.lvfaders{display:flex;gap:12px;flex-wrap:wrap;flex:1 1 300px;align-content:flex-start}
+.lvempty{color:var(--muted);font-size:13px;max-width:360px}
+.vf{width:120px;background:var(--ice2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.vf-l{font-size:12.5px;font-weight:600;line-height:1.2;min-height:30px}
+.vf-s{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.vf-t{position:relative;height:220px;border-radius:10px;background:var(--line);overflow:hidden;touch-action:none;cursor:ns-resize}
+.vf-t:focus-visible{outline:2px solid var(--okc);outline-offset:2px}
+.vf-f{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(to top,#ff7a1a,#ffb36b);opacity:.9}
+.vf-t.man .vf-f{background:linear-gradient(to top,#ff3d7f,#ff8fb5)}
+.vf-v{font-family:var(--mono);font-size:13px;text-align:center}
+.vf-v small{display:block;font-size:10px;color:var(--muted)}
+.xybox{flex:0 1 340px;min-width:240px}
+.xy{background:var(--ice2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.xy-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12.5px}
+.xy-h b{flex:1 1 100%}
+.xy-h label{display:inline-flex;align-items:center;gap:4px;color:var(--muted)}
+.xy-h input{width:54px}
+.xy-p{position:relative;aspect-ratio:1;border-radius:12px;background:#0e1016;touch-action:none;cursor:crosshair;
+  background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:25% 25%;background-position:center}
+.xy-p::before,.xy-p::after{content:"";position:absolute;background:rgba(255,255,255,.18)}
+.xy-p::before{left:50%;top:0;bottom:0;width:1px}.xy-p::after{top:50%;left:0;right:0;height:1px}
+.xy-d{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#ff7a1a;box-shadow:0 0 16px #ff7a1a;left:50%;top:50%;pointer-events:none}
+.xy-d.off{background:#5a6270;box-shadow:none}
+.xy-f{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:12px;color:var(--muted)}
 .faders{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .fdrow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:8px 0}
 .fdname{display:flex;flex-direction:column;gap:2px;min-width:220px;flex:1}
@@ -628,7 +654,7 @@ details.panel>summary::-webkit-details-marker{display:none}
   <main class="screen" id="scr-main" data-screen="main">
 
   <nav class="jump" aria-label="Secciones de la app">
-    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#manos">Manos</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
+    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#envivo">Faders</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#manos">Manos</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
     <span class="dockctl"><button id="dockReset" hidden>Restablecer</button><button id="dockEdit" title="Cambiar el orden de las secciones de la página">⇅ Ordenar</button></span>
   </nav>
 
@@ -751,6 +777,17 @@ details.panel>summary::-webkit-details-marker{display:none}
       <div class="row"><button id="skRawBtn">Ver datos del master</button><button id="skCopy">Copiar datos del deck master</button></div>
       <pre id="skRaw" class="midimon" style="white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:8px"></pre>
     </details>
+  </section>
+
+  <section class="panel" id="envivo">
+    <div class="songs-head">
+      <div>
+        <span class="lbl"><i class="flag"></i>Faders en vivo</span>
+        <p class="big-serif">Muévelos a mano, igual que en el celular.</p>
+        <p class="psub">Al moverlo, la app respeta tu valor hasta la siguiente sección. El pad X/Y manda dos CC a la vez: asígnalos en Pro DMX a pan y tilt.</p>
+      </div>
+    </div>
+    <div class="lvwrap"><div class="lvfaders" id="lvFaders"></div><div class="xybox" id="xyBox"></div></div>
   </section>
 
   <section class="panel" id="editor" data-s="intro">
@@ -1098,7 +1135,9 @@ function describe(b){ const ty=b[0]&0xF0, ch=(b[0]&0x0F)+1;
   if(ty===0xB0) return 'CC '+b[1]+' = '+b[2]+' · canal '+ch;
   if(ty===0x90) return 'Nota '+b[1]+' (vel '+b[2]+') · canal '+ch;
   return null; }
+var CCV={};   // último valor mandado por cada CC ("canal:cc"), venga de donde venga (auto, mano, celular, APC)
 function send(bytes,t){
+  if(bytes&&(bytes[0]&0xF0)===0xB0) CCV[((bytes[0]&15)+1)+':'+bytes[1]]=bytes[2];
   if(out){try{out.send(bytes,t);}catch(e){}}
   const d=describe(bytes); const n=performance.now();
   if(d && (bytes[0]&0xF0)===0xB0 || d && n-monT>250){ monT=n; const m=document.getElementById('midiMon'); if(m) m.textContent=(out?'Enviado: ':'Sin salida elegida: ')+d; }
@@ -1165,7 +1204,68 @@ let fdPending=false;
 function fdPaint(){ if(fdPending) return; fdPending=true; requestAnimationFrame(()=>{ fdPending=false;
   fdList().forEach(f=>{ const e=document.getElementById('fdv_'+fdKey(f).replace(':','_')); if(!e) return; const st=FD[fdKey(f)]||{};
     e.textContent=st.sent==null?'—':Math.round((st.sent-f.min)/((f.max-f.min)||1)*100)+' %'+(st.manual&&st.manual===fdSecKey()?' · manual':''); e.classList.toggle('man',!!(st.manual&&st.manual===fdSecKey())); }); }); }
+// ---------- faders en vivo (manuales) y pad X/Y: en esta pantalla y en el celular ----------
+S.xy=Object.assign({label:'Posición (pan / tilt)',ch:1,ccx:49,ccy:50},S.xy||{});
+const cl01=v=>Math.max(0,Math.min(1,v));
+function ccSend(ch,cc,v){ if(venueOnly()) return; v=Math.max(0,Math.min(127,Math.round(v))); send([0xB0|(ch-1),cc,v]); fdManual(ch,cc,v); }
+// valor 0..127 de un fader en vivo, relativo a su rango de Pro DMX
+const fdNow=f=>{ const v=CCV[f.ch+':'+f.cc]; return v==null?null:Math.round(cl01((v-f.min)/((f.max-f.min)||1))*127); };
+function fdSendRel(f,v){ ccSend(f.ch,f.cc,f.min+(f.max-f.min)*v/127); }
+// arrastre con límite de ~30 mensajes por segundo; al soltar manda el último valor
+function dragSender(fn){ let last=null,lastT=0,pend=null;
+  return { push(v){ last=v; const n=performance.now(); clearTimeout(pend); if(n-lastT>=33){ lastT=n; fn(v); } else pend=setTimeout(()=>{ lastT=performance.now(); fn(last); },33); },
+    end(){ clearTimeout(pend); if(last!=null) fn(last); last=null; } }; }
+function vfader(f){
+  const box=el('div','vf'); box.appendChild(el('div','vf-l',f.scenes.join(', ')+' · '+(FD_PARAM[f.param]||f.param))); box.appendChild(el('div','vf-s','CC '+f.cc+' · canal '+f.ch));
+  const tr=el('div','vf-t'), fill=el('div','vf-f'), val=el('div','vf-v'); tr.appendChild(fill); box.appendChild(tr); box.appendChild(val);
+  tr.tabIndex=0; tr.setAttribute('role','slider'); tr.setAttribute('aria-label',f.scenes.join(', ')+' '+(FD_PARAM[f.param]||f.param)); tr.setAttribute('aria-valuemin','0'); tr.setAttribute('aria-valuemax','100');
+  let drag=false; const ds=dragSender(v=>fdSendRel(f,v));
+  const show=(v,man)=>{ fill.style.height=(v==null?0:v/127*100)+'%'; tr.classList.toggle('man',!!man); val.innerHTML=''; val.appendChild(document.createTextNode(v==null?'—':Math.round(v/127*100)+' %')); val.appendChild(el('small',null,man?'manual':'auto')); if(v!=null) tr.setAttribute('aria-valuenow',String(Math.round(v/127*100))); };
+  const at=e=>{ const r=tr.getBoundingClientRect(); return Math.round(cl01((r.bottom-e.clientY)/r.height)*127); };
+  tr.addEventListener('pointerdown',e=>{ e.preventDefault(); tr.setPointerCapture(e.pointerId); tr.focus(); drag=true; const v=at(e); show(v,true); ds.push(v); });
+  tr.addEventListener('pointermove',e=>{ if(!drag) return; const v=at(e); show(v,true); ds.push(v); });
+  const end=()=>{ if(!drag) return; drag=false; ds.end(); };
+  tr.addEventListener('pointerup',end); tr.addEventListener('pointercancel',end);
+  tr.addEventListener('keydown',e=>{ const d={ArrowUp:5,ArrowRight:5,ArrowDown:-5,ArrowLeft:-5,PageUp:20,PageDown:-20}[e.key]; if(!d) return; e.preventDefault(); const v=Math.max(0,Math.min(127,(fdNow(f)||0)+d)); show(v,true); fdSendRel(f,v); });
+  box.paint=()=>{ if(drag) return; const st=FD[fdKey(f)]||{}; show(fdNow(f),!!(st.manual&&st.manual===fdSecKey())); };
+  return box;
+}
+function xyPad(){
+  const X=S.xy, w=el('div','xy'), h=el('div','xy-h');
+  h.appendChild(el('b',null,'Pad X/Y · '+X.label));
+  const num=(lbl,key,mn,mx)=>{ const l=el('label',null,lbl), n=document.createElement('input'); n.type='number'; n.min=mn; n.max=mx; n.value=X[key];
+    n.onchange=()=>{ X[key]=Math.max(mn,Math.min(mx,Math.round(+n.value||0))); n.value=X[key]; save(); }; l.appendChild(n); h.appendChild(l); };
+  num('Canal','ch',1,16); num('CC X','ccx',0,127); num('CC Y','ccy',0,127); w.appendChild(h);
+  const pad=el('div','xy-p'), dot=el('i','xy-d'); pad.appendChild(dot); w.appendChild(pad);
+  pad.tabIndex=0; pad.setAttribute('aria-label','Pad X/Y: arrastra para mover; flechas para ajustar');
+  const ft=el('div','xy-f'), rd=el('span'), ce=el('button',null,'Centrar'); ft.appendChild(rd); ft.appendChild(ce); w.appendChild(ft);
+  let drag=false; const ds=dragSender(p=>{ ccSend(X.ch,X.ccx,p[0]); ccSend(X.ch,X.ccy,p[1]); });
+  const show=(x,y)=>{ const off=x==null||y==null; dot.classList.toggle('off',off); dot.style.left=(off?50:x/127*100)+'%'; dot.style.top=(off?50:100-y/127*100)+'%'; rd.textContent=off?'X — · Y —':'X '+x+' · Y '+y; };
+  const at=e=>{ const r=pad.getBoundingClientRect(); return [Math.round(cl01((e.clientX-r.left)/r.width)*127),Math.round(cl01((r.bottom-e.clientY)/r.height)*127)]; };
+  pad.addEventListener('pointerdown',e=>{ e.preventDefault(); pad.setPointerCapture(e.pointerId); pad.focus(); drag=true; const p=at(e); show(p[0],p[1]); ds.push(p); });
+  pad.addEventListener('pointermove',e=>{ if(!drag) return; const p=at(e); show(p[0],p[1]); ds.push(p); });
+  const end=()=>{ if(!drag) return; drag=false; ds.end(); };
+  pad.addEventListener('pointerup',end); pad.addEventListener('pointercancel',end);
+  pad.addEventListener('keydown',e=>{ const k={ArrowLeft:[-4,0],ArrowRight:[4,0],ArrowUp:[0,4],ArrowDown:[0,-4]}[e.key]; if(!k) return; e.preventDefault();
+    const x=Math.max(0,Math.min(127,(CCV[X.ch+':'+X.ccx]??64)+k[0])), y=Math.max(0,Math.min(127,(CCV[X.ch+':'+X.ccy]??64)+k[1])); show(x,y); ccSend(X.ch,X.ccx,x); ccSend(X.ch,X.ccy,y); });
+  ce.onclick=()=>{ show(64,64); ccSend(X.ch,X.ccx,64); ccSend(X.ch,X.ccy,64); };
+  w.paint=()=>{ if(!drag) show(CCV[X.ch+':'+X.ccx]??null,CCV[X.ch+':'+X.ccy]??null); };
+  return w;
+}
+let LV=[], lvKey='';
+function renderLive(){
+  const fb=$('lvFaders'), xb=$('xyBox'); if(!fb) return;
+  const list=fdList(), key=list.map(fdKey).join('|');
+  if(key===lvKey&&LV.length) return; lvKey=key;
+  fb.innerHTML=''; xb.innerHTML=''; LV=[];
+  if(!list.length) fb.appendChild(el('p','lvempty','No hay faders en vivo en tu archivo. Asigna uno en Pro DMX (como la velocidad del WASH CIRCLE) y vuelve a importar el archivo.'));
+  list.forEach(f=>{ const b=vfader(f); fb.appendChild(b); LV.push(b); });
+  const p=xyPad(); xb.appendChild(p); LV.push(p);
+  LV.forEach(x=>x.paint());
+}
+setInterval(()=>LV.forEach(x=>x.paint()),120);
 function renderFaders(){
+  renderLive();
   const box=$('faders'); if(!box) return; box.innerHTML='';
   const list=fdList(), sk=edit.song?null:view;
   if(!list.length||!sk||!SECS.includes(sk)){ box.hidden=true; return; } box.hidden=false;
@@ -2365,7 +2465,8 @@ function rmState(){
     secs:SECS.map(k=>({k,label:SLABEL[k]})),
     cats:CATS,
     scenes:S.cat.map(c=>({n:c.name,cat:c.cat,page:c.page,flash:c.mode==='flash',pend:!!c.pending})),
-    faders:fdList().map(f=>{ const st=FD[fdKey(f)]||{}; return {ch:f.ch,cc:f.cc,label:f.scenes.join(', ')+' · '+(FD_PARAM[f.param]||f.param),v:st.sent==null?null:Math.round((st.sent-f.min)/((f.max-f.min)||1)*127),manual:!!(st.manual&&st.manual===fdSecKey())}; }) };
+    faders:fdList().map(f=>{ const st=FD[fdKey(f)]||{}; return {ch:f.ch,cc:f.cc,label:f.scenes.join(', ')+' · '+(FD_PARAM[f.param]||f.param),v:fdNow(f),manual:!!(st.manual&&st.manual===fdSecKey())}; }),
+    xy:{label:S.xy.label,ch:S.xy.ch,ccx:S.xy.ccx,ccy:S.xy.ccy,x:CCV[S.xy.ch+':'+S.xy.ccx]??null,y:CCV[S.xy.ch+':'+S.xy.ccy]??null} };
 }
 function rmPush(){ if(!S.remote.on||!rmOk()) return; const s=JSON.stringify(rmState()); if(s===RM.last) return; RM.last=s; dmxApp.remoteState(JSON.parse(s)); }
 function rmCmd(m){
@@ -2377,6 +2478,7 @@ function rmCmd(m){
     if(!(ch>=1&&ch<=16&&cc>=0&&cc<=127)||venueOnly()) return;
     const f=fdList().find(x=>x.ch===ch&&x.cc===cc), mv=f?Math.round(f.min+(f.max-f.min)*v/127):v;
     send([0xB0|(ch-1),cc,mv],t); fdManual(ch,cc,mv); }
+  else if(m.t==='xy'){ const x=+m.x, y=+m.y; if(!(x>=0&&x<=127&&y>=0&&y<=127)) return; ccSend(S.xy.ch,S.xy.ccx,x); ccSend(S.xy.ch,S.xy.ccy,y); }
   else if(m.t==='section'){ if(SECS.includes(m.k)) pickSection(m.k); }
   else if(m.t==='next') nextSectionNow();
   else if(m.t==='play'){ if(!ext){ playing?stop():start(); } }
