@@ -2,7 +2,7 @@
   "name": "dmx-show",
   "productName": "DMX Show",
   "version": "1.12.0",
-  "description": "Luces que corren con la mÃºsica",
+  "description": "Luces que corren con la música",
   "author": "Xidian Music",
   "main": "main.js",
   "scripts": {
