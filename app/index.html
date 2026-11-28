@@ -206,6 +206,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .hd-view.mirror video,.hd-view.mirror canvas{transform:scaleX(-1)}
 .hd-read{position:absolute;left:10px;right:10px;bottom:8px;font:12px/1.5 'IBM Plex Mono',monospace;color:#e9eaee;text-shadow:0 1px 3px #000;pointer-events:none;white-space:pre-wrap}
 .hd-rows{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.tk-rows{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+.tk-row{display:grid;grid-template-columns:minmax(0,1fr) 170px auto;gap:14px;align-items:start;background:var(--ice2);border:1px solid var(--line);border-radius:14px;padding:12px}
+.tk-a{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tk-a input[type=time]{font-size:20px;font-family:var(--mono);padding:4px 8px}
+.tk-a select{max-width:100%;min-width:0}
+.tk-st{flex-basis:100%;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tk-xy{display:flex;flex-direction:column;gap:6px}
+.tk-pad.off{opacity:.45}
+.tk-xyv{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center}
+.tk-b{display:flex;flex-direction:column;gap:6px}
+@media (max-width:720px){.tk-row{grid-template-columns:minmax(0,1fr)}.tk-xy{max-width:220px}.tk-b{flex-direction:row}}
 .hd-row{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;background:var(--ice2);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:13px}
 .hd-row label{display:inline-flex;align-items:center;gap:4px}
 .hd-row input[type=number]{width:58px}
@@ -676,7 +687,7 @@ details.panel>summary::-webkit-details-marker{display:none}
   <main class="screen" id="scr-main" data-screen="main">
 
   <nav class="jump" aria-label="Secciones de la app">
-    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#manos">Manos</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
+    <a href="#player">Reproductor</a><a href="#skPanel">ShowKontrol</a><a href="#editor">Escena</a><a href="#songs">Canciones</a><a href="#ajustes">Ajustes y MIDI</a><a href="#manos">Manos</a><a href="#horario">Horario</a><a href="#stdPanel">Señal estándar</a><a href="#tecnico">Técnico</a>
     <span class="dockctl"><button id="dockReset" hidden>Restablecer</button><button id="dockEdit" title="Cambiar el orden de las secciones de la página">⇅ Ordenar</button></span>
   </nav>
 
@@ -935,6 +946,19 @@ details.panel>summary::-webkit-details-marker{display:none}
     <h3 class="ptitle">Gestos → escenas</h3>
     <div class="hd-rows" id="hdGest"></div>
     <button id="hdAddGest">+ Agregar gesto</button>
+  </section>
+
+  <section class="panel" id="horario">
+    <div class="songs-head">
+      <div>
+        <span class="lbl"><i class="flag"></i>Horario</span>
+        <p class="big-serif">Escenas que se prenden solas a una hora.</p>
+        <p class="psub">A la hora exacta la app prende la escena y manda la posición X/Y (dos CC: asígnalos en Pro DMX a pan y tilt). La escena se queda aunque cambie la sección. Se dispara una vez por noche, con la app abierta.</p>
+      </div>
+    </div>
+    <div class="row" id="tkXyCfg"></div>
+    <div class="tk-rows" id="tkRows"></div>
+    <button id="tkAdd">+ Agregar tarea</button>
   </section>
 
   <section class="panel" id="stdPanel">
@@ -1688,6 +1712,7 @@ function renderGrid(){
   });
 }
 function renderCat(){
+  if(Array.isArray(S.tasks)) renderTasks(); // las tareas por hora listan las escenas del catálogo
   const tb=$('catBody'); tb.innerHTML='';
   S.cat.forEach((c,i)=>{
     const tr=document.createElement('tr');
@@ -2942,6 +2967,75 @@ function renderWarm(){
 }
 setInterval(()=>{ paintWarmRail(); if(screen==='warm') paintWarm(); },1000);
 paintWarmRail();
+// ---------- HORARIO: tareas por hora (escena + posición X/Y) ----------
+// Cada tarea: {on, time:'HH:MM', scene, clear (apagar lo demás), xy:{on,x,y}, last:'AAAA-MM-DD' (ya se disparó ese día)}
+if(!Array.isArray(S.tasks)){
+  S.tasks=[{on:true,time:'04:00',scene:'',seed:'warm',clear:true,xy:{on:false,x:64,y:64},last:''},
+           {on:true,time:'04:15',scene:'',seed:'pilar',clear:false,xy:{on:true,x:64,y:64},last:''}];
+}
+// las dos tareas de ejemplo toman su escena en cuanto exista (warm up elegido / escena con "PILAR" en el nombre)
+function tkSeed(){ S.tasks.forEach(k=>{ if(!k.seed||k.scene) return;
+  const n=k.seed==='warm'?((S.cat.find(c=>/warm.*clos/i.test(c.name))||{}).name||(sc(S.warm.scene)?S.warm.scene:((S.cat.find(c=>/warm/i.test(c.name))||{}).name||''))):((S.cat.find(c=>/pilar/i.test(c.name))||{}).name||'');
+  if(n){ k.scene=n; delete k.seed; save(); } }); }
+const dayKey=()=>{ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); };
+function tkFire(k,manual){
+  const t=performance.now(), c=sc(k.scene);
+  if(k.clear){ if(playing&&!ext) stop(); else allOff(t); if(warmOn) warmSet(false); }
+  if(c){ setScene(c.name,true,t); HD_KEEP.add(c.name); }
+  if(k.xy&&k.xy.on&&!venueOnly()){ ccSend(S.xy.ch,S.xy.ccx,k.xy.x); ccSend(S.xy.ch,S.xy.ccy,k.xy.y); }
+  if(!manual){ k.last=dayKey(); save(); }
+  queueUi(); tkPaint();
+}
+function tkTick(){
+  const d=new Date(), hm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'), day=dayKey();
+  S.tasks.forEach(k=>{ if(k.on&&k.time===hm&&k.last!==day) tkFire(k); });
+}
+setInterval(tkTick,1000);
+function tkPad(k){
+  const pad=el('div','xy-p tk-pad'), dot=el('i','xy-d'); pad.appendChild(dot); pad.tabIndex=0; pad.setAttribute('aria-label','Posición X/Y de la tarea');
+  const rd=el('span','tk-xyv');
+  const show=()=>{ dot.style.left=(k.xy.x/127*100)+'%'; dot.style.top=(100-k.xy.y/127*100)+'%'; rd.textContent='X '+k.xy.x+' · Y '+k.xy.y; pad.classList.toggle('off',!k.xy.on); dot.classList.toggle('off',!k.xy.on); };
+  const at=e=>{ const r=pad.getBoundingClientRect(); k.xy.x=Math.round(cl01((e.clientX-r.left)/r.width)*127); k.xy.y=Math.round(cl01((r.bottom-e.clientY)/r.height)*127); show(); };
+  let drag=false;
+  // al arrastrar también lo manda en vivo, para apuntar las luces mientras eliges
+  const ds=dragSender(()=>{ if(k.xy.on&&!venueOnly()){ ccSend(S.xy.ch,S.xy.ccx,k.xy.x); ccSend(S.xy.ch,S.xy.ccy,k.xy.y); } });
+  pad.addEventListener('pointerdown',e=>{ e.preventDefault(); pad.setPointerCapture(e.pointerId); pad.focus(); drag=true; at(e); ds.push(1); });
+  pad.addEventListener('pointermove',e=>{ if(drag){ at(e); ds.push(1); } });
+  const end=()=>{ if(!drag) return; drag=false; ds.end(); save(); };
+  pad.addEventListener('pointerup',end); pad.addEventListener('pointercancel',end);
+  pad.addEventListener('keydown',e=>{ const m={ArrowLeft:[-4,0],ArrowRight:[4,0],ArrowUp:[0,4],ArrowDown:[0,-4]}[e.key]; if(!m) return; e.preventDefault();
+    k.xy.x=Math.max(0,Math.min(127,k.xy.x+m[0])); k.xy.y=Math.max(0,Math.min(127,k.xy.y+m[1])); show(); save(); });
+  show(); return [pad,rd,show];
+}
+function tkPaint(){ document.querySelectorAll('.tk-row').forEach((r,i)=>{ const k=S.tasks[i]; if(!k) return;
+  r.querySelector('.tk-st').textContent=!k.on?'apagada':k.last===dayKey()?'ya se disparó hoy':'pendiente'; }); }
+function renderTasks(){
+  const box=$('tkRows'); if(!box) return; tkSeed(); box.innerHTML='';
+  const xc=$('tkXyCfg'); xc.innerHTML='';
+  [['Canal X/Y','ch',1,16],['CC X (pan)','ccx',0,127],['CC Y (tilt)','ccy',0,127]].forEach(([lbl,key,mn,mx])=>{ const l=el('label','f',lbl), n=document.createElement('input'); n.type='number'; n.min=mn; n.max=mx; n.value=S.xy[key];
+    n.onchange=()=>{ S.xy[key]=Math.max(mn,Math.min(mx,Math.round(+n.value||0))); n.value=S.xy[key]; save(); }; l.appendChild(n); xc.appendChild(l); });
+  S.tasks.forEach((k,i)=>{
+    k.xy=Object.assign({on:false,x:64,y:64},k.xy||{});
+    const r=el('div','tk-row'), a=el('div','tk-a');
+    const on=document.createElement('input'); on.type='checkbox'; on.checked=k.on; on.setAttribute('aria-label','Tarea activa'); on.onchange=()=>{ k.on=on.checked; save(); tkPaint(); };
+    const tm=document.createElement('input'); tm.type='time'; tm.value=k.time; tm.setAttribute('aria-label','Hora'); tm.onchange=()=>{ if(tm.value){ k.time=tm.value; k.last=''; save(); tkPaint(); } };
+    const s=sceneSelect(sc(k.scene)?k.scene:'',v=>{ k.scene=v; delete k.seed; save(); },true); s.setAttribute('aria-label','Escena');
+    const cl=el('label','rmchk'); const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!k.clear; cb.onchange=()=>{ k.clear=cb.checked; save(); }; cl.appendChild(cb); cl.appendChild(document.createTextNode(' Apagar lo demás (detiene el show)'));
+    a.appendChild(on); a.appendChild(tm); a.appendChild(s); a.appendChild(cl);
+    const st=el('small','tk-st'); a.appendChild(st);
+    const [pad,rd,show]=tkPad(k);
+    const xl=el('label','rmchk'); const xb=document.createElement('input'); xb.type='checkbox'; xb.checked=k.xy.on; xb.onchange=()=>{ k.xy.on=xb.checked; save(); show(); }; xl.appendChild(xb); xl.appendChild(document.createTextNode(' Dirección X/Y'));
+    const xyw=el('div','tk-xy'); xyw.appendChild(xl); xyw.appendChild(pad); xyw.appendChild(rd);
+    const btns=el('div','tk-b'), go=el('button',null,'Probar ahora'), x=el('button','x','Quitar');
+    go.onclick=()=>tkFire(k,true); x.onclick=()=>{ S.tasks.splice(i,1); save(); renderTasks(); };
+    btns.appendChild(go); btns.appendChild(x);
+    r.appendChild(a); r.appendChild(xyw); r.appendChild(btns); box.appendChild(r);
+  });
+  if(!S.tasks.length) box.appendChild(el('p','psub','No hay tareas. Agrega una.'));
+  tkPaint();
+}
+$('tkAdd').onclick=()=>{ S.tasks.push({on:true,time:'04:00',scene:'',clear:false,xy:{on:false,x:64,y:64},last:''}); save(); renderTasks(); };
+renderTasks();
 function sysChecks(){
   const R=[];
   const su=S.suite;
